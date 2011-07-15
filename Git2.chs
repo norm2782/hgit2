@@ -81,7 +81,8 @@ isEmpty :: Repository -> IO Bool
 isEmpty = repoIs {#call git_repository_is_empty#}
 
 path :: Repository -> RepositoryPathID -> IO String
-path (Repository r) pathID = return . undefined =<< {#call git_repository_path#} r (fromIntegral $ fromEnum pathID)
+path (Repository r) pathID = peekCString =<< {#call git_repository_path#} r p
+  where p = fromIntegral $ fromEnum pathID
 
 isBare :: Repository -> IO Bool
 isBare = repoIs {#call git_repository_is_bare#}
