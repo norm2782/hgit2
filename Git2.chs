@@ -39,15 +39,6 @@ openRepo path = alloca $ \pprepo -> do
     then fmap (Right . Repository) $ peek pprepo
     else return . Left . toEnum . fromIntegral $ res
 
-{-
-do
-  let repo = nullPtr
-  pstr <- newCString path
-  res <- {#call git_repository_open#} repo pstr
-  return $ case res of
-             0 -> Right $ Repository repo
-             n -> Left . toEnum . fromIntegral $ n
--}
 openRepoObjDir :: String -> String -> String -> String -> IO (Either GitError Repository)
 openRepoObjDir dir objDir idxFile workTree = undefined -- git_repository_open2
 
@@ -62,7 +53,11 @@ database :: Repository -> IO ObjDB
 database (Repository r) = return . ObjDB =<< {#call git_repository_database#} r
 
 index :: Repository -> IO (Either GitError Index)
-index repo = undefined -- git_repository_index
+index (Repository r) = alloca $ \idx -> do
+  res  <- {#call git_repository_index#} idx r
+  if res == 0
+    then fmap (Right . Index) $ peek idx
+    else return . Left . toEnum . fromIntegral $ res
 
 free :: Repository -> IO ()
 free (Repository r) = {#call git_repository_free#} r
