@@ -1,7 +1,7 @@
 default: Main
 
 Main: Main.hs Git2.hs
-	ghc --make Main.hs
+	ghc --make Main.hs -lgit2
 
 Git2.hs: Git2.chs
 	c2hs --cppopts='-I.' --cppopts='-U __BLOCKS__' Git2.chs
