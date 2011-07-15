@@ -51,11 +51,24 @@ openRepoObjDir dir objDir idxFile workTree = alloca $ \pprepo -> do
     else return . Left . toEnum . fromIntegral $ res
 
 openRepoObjDb :: String -> ObjDB -> String -> String -> IO (Either GitError Repository)
-openRepoObjDb dir db idxFile workTree = undefined -- git_repository_open3
+openRepoObjDb dir (ObjDB db) idxFile workTree = alloca $ \pprepo -> do
+  dirStr     <- newCString dir
+  idxFileStr <- newCString idxFile
+  wtreeStr   <- newCString workTree
+  res  <- {#call git_repository_open3#} pprepo dirStr db idxFileStr wtreeStr
+  if res == 0
+    then fmap (Right . Repository) $ peek pprepo
+    else return . Left . toEnum . fromIntegral $ res
 
 -- TODO: size? GIT_EXTERN(int) git_repository_discover(char *repository_path, size_t size, const char *start_path, int across_fs, const char *ceiling_dirs);
 discover :: String -> Bool -> String -> IO (Either GitError String)
-discover startPath acrossFs ceilingDirs = undefined -- git_repository_discover
+discover startPath acrossFs ceilingDirs = alloca $ \path -> do
+  spStr  <- newCString startPath
+  cdsStr <- newCString ceilingDirs
+  res <-{#call git_repository_discover#} path undefined spStr (fromBool acrossFs) cdsStr
+  if res == 0
+    then undefined
+    else return . Left . toEnum . fromIntegral $ res
 
 database :: Repository -> IO ObjDB
 database (Repository r) = return . ObjDB =<< {#call git_repository_database#} r
