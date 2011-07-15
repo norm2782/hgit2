@@ -7,7 +7,6 @@
 
 module Git2 where
 
--- import Data.Primitive
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
