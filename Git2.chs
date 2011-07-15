@@ -62,8 +62,14 @@ index (Repository r) = alloca $ \idx -> do
 free :: Repository -> IO ()
 free (Repository r) = {#call git_repository_free#} r
 
-init :: String -> Bool -> Either GitError Repository
-init path isBare = undefined -- git_repository_init
+-- TODO: Refactor some bits
+init :: String -> Bool -> IO (Either GitError Repository)
+init path isBare = alloca $ \pprepo -> do
+  pstr <- newCString path
+  res  <- {#call git_repository_init#} pprepo pstr (fromBool isBare)
+  if res == 0
+    then fmap (Right . Repository) $ peek pprepo
+    else return . Left . toEnum . fromIntegral $ res
 
 isHeadDetached :: Repository -> IO Bool
 isHeadDetached = repoIs {#call git_repository_head_detached#}
