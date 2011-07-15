@@ -40,7 +40,15 @@ openRepo path = alloca $ \pprepo -> do
     else return . Left . toEnum . fromIntegral $ res
 
 openRepoObjDir :: String -> String -> String -> String -> IO (Either GitError Repository)
-openRepoObjDir dir objDir idxFile workTree = undefined -- git_repository_open2
+openRepoObjDir dir objDir idxFile workTree = alloca $ \pprepo -> do
+  dirStr     <- newCString dir
+  objDirStr  <- newCString objDir
+  idxFileStr <- newCString idxFile
+  wtreeStr   <- newCString workTree
+  res  <- {#call git_repository_open2#} pprepo dirStr objDirStr idxFileStr wtreeStr
+  if res == 0
+    then fmap (Right . Repository) $ peek pprepo
+    else return . Left . toEnum . fromIntegral $ res
 
 openRepoObjDb :: String -> ObjDB -> String -> String -> IO (Either GitError Repository)
 openRepoObjDb dir db idxFile workTree = undefined -- git_repository_open3
