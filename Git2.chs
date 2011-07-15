@@ -80,7 +80,7 @@ init path isBare = alloca $ \pprepo -> do
   res  <- {#call git_repository_init#} pprepo pstr (fromBool isBare)
   retEither res $ fmap (Right . Repository) $ peek pprepo
 
--- TODO: Add tysig
+retEither :: CInt -> IO (Either GitError a) -> IO (Either GitError a)
 retEither res f | res == 0  = f
                 | otherwise = return . Left . toEnum . fromIntegral $ res
 
