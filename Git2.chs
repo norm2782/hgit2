@@ -9,6 +9,7 @@ module Git2 where
 
 import Data.Primitive
 import Foreign
+import Foreign.C.String
 import Foreign.C.Types
 
 type OffT    = {#type git_off_t#}
@@ -31,7 +32,12 @@ repoIs :: Ptr2Int -> Repository -> IO Bool
 repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
 
 openRepo :: String -> IO (Either GitError Repository)
-openRepo path = undefined -- git_repository_open
+openRepo path = do
+  pstr <- newCString path
+  res <- {#call git_repository_open#} nullPtr pstr
+  return $ case res of
+             0 -> Right repo
+             n -> Left . toEnum . fromIntegral $ n
 
 openRepoObjDir :: String -> String -> String -> String -> IO (Either GitError Repository)
 openRepoObjDir dir objDir idxFile workTree = undefined -- git_repository_open2
