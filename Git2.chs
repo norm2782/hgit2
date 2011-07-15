@@ -1,6 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 #include "git2.h"
 
@@ -23,6 +24,8 @@ newtype Index      = Index { unIndex :: Ptr () }
 {#enum git_repository_pathid as RepositoryPathID {underscoreToCase}#}
 {#enum git_error as GitError {underscoreToCase}#}
 {#enum git_odb_streammode as ODBStreamMode {underscoreToCase}#}
+
+deriving instance Show GitError
 
 repoIs :: Ptr2Int -> Repository -> IO Bool
 repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
