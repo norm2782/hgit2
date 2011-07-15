@@ -35,9 +35,7 @@ openRepo :: String -> IO (Either GitError Repository)
 openRepo path = alloca $ \pprepo -> do
   pstr <- newCString path
   res  <- {#call git_repository_open#} pprepo pstr
-  if res == 0
-    then fmap (Right . Repository) $ peek pprepo
-    else return . Left . toEnum . fromIntegral $ res
+  retEither res $ fmap (Right . Repository) $ peek pprepo
 
 openRepoObjDir :: String -> String -> String -> String -> IO (Either GitError Repository)
 openRepoObjDir dir objDir idxFile workTree = alloca $ \pprepo -> do
@@ -45,30 +43,24 @@ openRepoObjDir dir objDir idxFile workTree = alloca $ \pprepo -> do
   objDirStr  <- newCString objDir
   idxFileStr <- newCString idxFile
   wtreeStr   <- newCString workTree
-  res  <- {#call git_repository_open2#} pprepo dirStr objDirStr idxFileStr wtreeStr
-  if res == 0
-    then fmap (Right . Repository) $ peek pprepo
-    else return . Left . toEnum . fromIntegral $ res
+  res        <- {#call git_repository_open2#} pprepo dirStr objDirStr idxFileStr wtreeStr
+  retEither res $ fmap (Right . Repository) $ peek pprepo
 
 openRepoObjDb :: String -> ObjDB -> String -> String -> IO (Either GitError Repository)
 openRepoObjDb dir (ObjDB db) idxFile workTree = alloca $ \pprepo -> do
   dirStr     <- newCString dir
   idxFileStr <- newCString idxFile
   wtreeStr   <- newCString workTree
-  res  <- {#call git_repository_open3#} pprepo dirStr db idxFileStr wtreeStr
-  if res == 0
-    then fmap (Right . Repository) $ peek pprepo
-    else return . Left . toEnum . fromIntegral $ res
+  res        <- {#call git_repository_open3#} pprepo dirStr db idxFileStr wtreeStr
+  retEither res $ fmap (Right . Repository) $ peek pprepo
 
 -- TODO: size? GIT_EXTERN(int) git_repository_discover(char *repository_path, size_t size, const char *start_path, int across_fs, const char *ceiling_dirs);
 discover :: String -> Bool -> String -> IO (Either GitError String)
 discover startPath acrossFs ceilingDirs = alloca $ \path -> do
   spStr  <- newCString startPath
   cdsStr <- newCString ceilingDirs
-  res <-{#call git_repository_discover#} path undefined spStr (fromBool acrossFs) cdsStr
-  if res == 0
-    then undefined
-    else return . Left . toEnum . fromIntegral $ res
+  res    <- {#call git_repository_discover#} path undefined spStr (fromBool acrossFs) cdsStr
+  retEither res $ undefined
 
 database :: Repository -> IO ObjDB
 database (Repository r) = return . ObjDB =<< {#call git_repository_database#} r
@@ -76,9 +68,7 @@ database (Repository r) = return . ObjDB =<< {#call git_repository_database#} r
 index :: Repository -> IO (Either GitError Index)
 index (Repository r) = alloca $ \idx -> do
   res  <- {#call git_repository_index#} idx r
-  if res == 0
-    then fmap (Right . Index) $ peek idx
-    else return . Left . toEnum . fromIntegral $ res
+  retEither res $ fmap (Right . Index) $ peek idx
 
 free :: Repository -> IO ()
 free (Repository r) = {#call git_repository_free#} r
@@ -88,9 +78,11 @@ init :: String -> Bool -> IO (Either GitError Repository)
 init path isBare = alloca $ \pprepo -> do
   pstr <- newCString path
   res  <- {#call git_repository_init#} pprepo pstr (fromBool isBare)
-  if res == 0
-    then fmap (Right . Repository) $ peek pprepo
-    else return . Left . toEnum . fromIntegral $ res
+  retEither res $ fmap (Right . Repository) $ peek pprepo
+
+-- TODO: Add tysig
+retEither res f | res == 0  = f
+                | otherwise = return . Left . toEnum . fromIntegral $ res
 
 isHeadDetached :: Repository -> IO Bool
 isHeadDetached = repoIs {#call git_repository_head_detached#}
