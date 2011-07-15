@@ -32,13 +32,22 @@ repoIs :: Ptr2Int -> Repository -> IO Bool
 repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
 
 openRepo :: String -> IO (Either GitError Repository)
-openRepo path = do
+openRepo path = alloca $ \pprepo -> do
   pstr <- newCString path
-  res <- {#call git_repository_open#} nullPtr pstr
-  return $ case res of
-             0 -> Right repo
-             n -> Left . toEnum . fromIntegral $ n
+  res  <- {#call git_repository_open#} pprepo pstr
+  if res == 0
+    then fmap (Right . Repository) $ peek pprepo
+    else return . Left . toEnum . fromIntegral $ res
 
+{-
+do
+  let repo = nullPtr
+  pstr <- newCString path
+  res <- {#call git_repository_open#} repo pstr
+  return $ case res of
+             0 -> Right $ Repository repo
+             n -> Left . toEnum . fromIntegral $ n
+-}
 openRepoObjDir :: String -> String -> String -> String -> IO (Either GitError Repository)
 openRepoObjDir dir objDir idxFile workTree = undefined -- git_repository_open2
 
