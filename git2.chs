@@ -27,24 +27,24 @@ newtype Index      = Index { unIndex :: Ptr () }
 repoIs :: Ptr2Int -> Repository -> IO Bool
 repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
 
-openRepo :: Repository -> String -> IO ()
-openRepo repo path = undefined -- git_repository_open
+openRepo :: String -> IO (Either GitError Repository)
+openRepo path = undefined -- git_repository_open
 
-openRepoObjDir :: Repository -> String -> String -> String -> String -> IO (Maybe GitError)
-openRepoObjDir repo dir objDir idxFile workTree = undefined -- git_repository_open2
+openRepoObjDir :: String -> String -> String -> String -> IO (Either GitError Repository)
+openRepoObjDir dir objDir idxFile workTree = undefined -- git_repository_open2
 
-openRepoObjDb :: Repository -> String -> ObjDB -> String -> String -> IO (Maybe GitError)
-openRepoObjDb repo dir db idxFile workTree = undefined -- git_repository_open3
+openRepoObjDb :: String -> ObjDB -> String -> String -> IO (Either GitError Repository)
+openRepoObjDb dir db idxFile workTree = undefined -- git_repository_open3
 
 -- TODO: size? GIT_EXTERN(int) git_repository_discover(char *repository_path, size_t size, const char *start_path, int across_fs, const char *ceiling_dirs);
-discover :: String -> String -> Bool -> String -> IO (Maybe GitError)
-discover path startPath acrossFs ceilingDirs = undefined -- git_repository_discover
+discover :: String -> Bool -> String -> IO (Either GitError String)
+discover startPath acrossFs ceilingDirs = undefined -- git_repository_discover
 
 database :: Repository -> IO ObjDB
 database (Repository r) = return . ObjDB =<< {#call git_repository_database#} r
 
-index :: Index -> Repository -> IO (Maybe GitError)
-index idx repo = undefined -- git_repository_index
+index :: Repository -> IO (Either GitError Index)
+index repo = undefined -- git_repository_index
 
 free :: Repository -> IO ()
 free (Repository r) = {#call git_repository_free#} r
