@@ -28,6 +28,8 @@ newtype Commit     = Commit CPtr
 newtype Signature  = Signature CPtr
 newtype Tree       = Tree CPtr
 newtype Config     = Config CPtr
+newtype IndexEntry = IndexEntry CPtr
+newtype IndexEntryUnMerged = IndexEntryUnMerged CPtr
 
 defaultPort :: String
 defaultPort = "9418" -- TODO: Import from net.h?
@@ -560,137 +562,70 @@ addIndex (Index idx) path stage = do
   res <- {#call git_index_add#} idx pth (fromIntegral stage)
   retMaybeRes res
 
+-- | Add or update an index entry from an in-memory struct
+addIndex2 :: Index -> IndexEntry -> IO (Maybe GitError)
+addIndex2 (Index idx) (IndexEntry ie) = do
+  res <- {#call git_index_add2#} idx ie
+  retMaybeRes res
 
+-- | Add (append) an index entry from a file in disk
+appendIndex :: Index -> String -> Int -> IO (Maybe GitError)
+appendIndex (Index idx) path stage = do
+  pth <- newCString path
+  res <- {#call git_index_append#} idx pth (fromIntegral stage)
+  retMaybeRes res
 
-{-
-/**
- * Add or update an index entry from an in-memory struct
- *
- * A full copy (including the 'path' string) of the given
- * 'source_entry' will be inserted on the index.
- *
- * @param index an existing index object
- * @param source_entry new entry object
- * @return 0 on success, otherwise an error code
- */
-GIT_EXTERN(int) git_index_add2(git_index *index, const git_index_entry *source_entry);
+-- | Add (append) an index entry from an in-memory struct
+appendIndex2 :: Index -> IndexEntry -> IO (Maybe GitError)
+appendIndex2 (Index idx) (IndexEntry ie) = do
+  res <- {#call git_index_append2#} idx ie
+  retMaybeRes res
 
-/**
- * Add (append) an index entry from a file in disk
- *
- * A new entry will always be inserted into the index;
- * if the index already contains an entry for such
- * path, the old entry will **not** be replaced.
- *
- * The file `path` must be relative to the repository's
- * working folder and must be readable.
- *
- * This method will fail in bare index instances.
- *
- * @param index an existing index object
- * @param path filename to add
- * @param stage stage for the entry
- * @return 0 on success, otherwise an error code
- */
-GIT_EXTERN(int) git_index_append(git_index *index, const char *path, int stage);
+-- | Remove an entry from the index
+remove :: Index -> Int -> IO (Maybe GitError)
+remove (Index idx) n = do
+  res <- {#call git_index_remove#} idx (fromIntegral n)
+  retMaybeRes res
 
-/**
- * Add (append) an index entry from an in-memory struct
- *
- * A new entry will always be inserted into the index;
- * if the index already contains an entry for the path
- * in the `entry` struct, the old entry will **not** be
- * replaced.
- *
- * A full copy (including the 'path' string) of the given
- * 'source_entry' will be inserted on the index.
- *
- * @param index an existing index object
- * @param source_entry new entry object
- * @return 0 on success, otherwise an error code
- */
-GIT_EXTERN(int) git_index_append2(git_index *index, const git_index_entry *source_entry);
+-- | Get a pointer to one of the entries in the index
+getIndex :: Index -> Int -> IO (Maybe IndexEntry)
+getIndex (Index idx) n = do
+  res <- {#call git_index_get#} idx (fromIntegral n)
+  return $ if res == nullPtr
+             then Nothing
+             else Just $ IndexEntry res
 
-/**
- * Remove an entry from the index
- *
- * @param index an existing index object
- * @param position position of the entry to remove
- * @return 0 on success, otherwise an error code
- */
-GIT_EXTERN(int) git_index_remove(git_index *index, int position);
+-- | Get the count of entries currently in the index
+entryCount :: Index -> IO Int
+entryCount (Index idx) =
+  return . fromIntegral =<< {#call git_index_entrycount#} idx
 
+-- | Get the count of unmerged entries currently in the index
+entryCountUnMerged :: Index -> IO Int
+entryCountUnMerged (Index idx) =
+  return . fromIntegral =<< {#call git_index_entrycount_unmerged#} idx
 
-/**
- * Get a pointer to one of the entries in the index
- *
- * This entry can be modified, and the changes will be written
- * back to disk on the next write() call.
- *
- * The entry should not be freed by the caller.
- *
- * @param index an existing index object
- * @param n the position of the entry
- * @return a pointer to the entry; NULL if out of bounds
- */
-GIT_EXTERN(git_index_entry *) git_index_get(git_index *index, unsigned int n);
+-- | Get an unmerged entry from the index.
+unmergedByPath :: Index -> String -> IO (Maybe IndexEntryUnMerged)
+unmergedByPath (Index idx) path = do
+  pth <- newCString path
+  res <- {#call git_index_get_unmerged_bypath#} idx pth
+  return $ if res == nullPtr
+             then Nothing
+             else Just $ IndexEntryUnMerged res
 
-/**
- * Get the count of entries currently in the index
- *
- * @param index an existing index object
- * @return integer of count of current entries
- */
-GIT_EXTERN(unsigned int) git_index_entrycount(git_index *index);
+-- | Get an unmerged entry from the index.
+unmergedByIndex :: Index -> Int -> IO (Maybe IndexEntryUnMerged)
+unmergedByIndex (Index idx) n = do
+  res <- {#call git_index_get_unmerged_byindex#} idx (fromIntegral n)
+  return $ if res == nullPtr
+             then Nothing
+             else Just $ IndexEntryUnMerged res
 
-/**
- * Get the count of unmerged entries currently in the index
- *
- * @param index an existing index object
- * @return integer of count of current unmerged entries
- */
-GIT_EXTERN(unsigned int) git_index_entrycount_unmerged(git_index *index);
-
-/**
- * Get an unmerged entry from the index.
- *
- * The returned entry is read-only and should not be modified
- * of freed by the caller.
- *
- * @param index an existing index object
- * @param path path to search
- * @return the unmerged entry; NULL if not found
- */
-GIT_EXTERN(const git_index_entry_unmerged *) git_index_get_unmerged_bypath(git_index *index, const char *path);
-
-/**
- * Get an unmerged entry from the index.
- *
- * The returned entry is read-only and should not be modified
- * of freed by the caller.
- *
- * @param index an existing index object
- * @param n the position of the entry
- * @return a pointer to the unmerged entry; NULL if out of bounds
- */
-GIT_EXTERN(const git_index_entry_unmerged *) git_index_get_unmerged_byindex(git_index *index, unsigned int n);
-
-/**
- * Return the stage number from a git index entry
- *
- * This entry is calculated from the entrie's flag
- * attribute like this:
- *
- *	(entry->flags & GIT_IDXENTRY_STAGEMASK) >> GIT_IDXENTRY_STAGESHIFT
- *
- * @param entry The entry
- * @returns the stage number
- */
-GIT_EXTERN(int) git_index_entry_stage(const git_index_entry *entry);
-
-
--}
-
+-- | Return the stage number from a git index entry
+entryStage :: IndexEntry -> IO Int
+entryStage (IndexEntry ie) =
+  return . fromIntegral =<< {#call git_index_entry_stage#} ie
 
 -------------------------------------------------------------------------------
 -- END: index.h
