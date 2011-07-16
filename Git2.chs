@@ -68,6 +68,18 @@ defaultPort = "9418" -- TODO: Import from net.h?
 
 deriving instance Show GitError
 
+
+
+retEither :: CInt -> IO (Either GitError a) -> IO (Either GitError a)
+retEither res f | res == 0  = f
+                | otherwise = return . Left . toEnum . fromIntegral $ res
+
+
+retMaybeRes :: CInt -> IO (Maybe GitError)
+retMaybeRes res | res == 0  = return Nothing
+                | otherwise = return $ Just . toEnum . fromIntegral $ res
+
+
 -------------------------------------------------------------------------------
 -- BEGIN: blob.h
 -------------------------------------------------------------------------------
@@ -99,10 +111,6 @@ blobFromFile (ObjID obj) (Repository repo) path = do
   pathStr  <- newCString path
   res      <- {#call git_blob_create_fromfile #} obj repo pathStr
   retMaybeRes res
-
-retMaybeRes :: CInt -> IO (Maybe GitError)
-retMaybeRes res | res == 0  = return Nothing
-                | otherwise = return $ Just . toEnum . fromIntegral $ res
 
 -- TODO: CPtr here?
 blobFromBuffer :: ObjID -> Repository -> CPtr -> IO (Maybe GitError)
@@ -178,18 +186,14 @@ parent (Commit c) n = alloca $ \parent -> do
   res <- {#call git_commit_parent#} parent c (fromIntegral n)
   retEither res $ fmap (Right . Commit) $ peek parent
 
-{-
-/**
- * Get the oid of a specified parent for a commit. This is different from
- * `git_commit_parent`, which will attempt to load the parent commit from
- * the ODB.
- *
- * @param commit a previously loaded commit.
- * @param n the position of the parent (from 0 to `parentcount`)
- * @return the id of the parent, NULL on error.
- */
-GIT_EXTERN(const git_oid *) git_commit_parent_oid(git_commit *commit, unsigned int n);
+parentObjID :: Commit -> Int -> IO (Maybe ObjID)
+parentObjID (Commit c) n = do
+  res <- {#call git_commit_parent_oid#} c (fromIntegral n)
+  if res == nullPtr
+    then return Nothing
+    else return . Just . ObjID $ res
 
+{-
 /**
  * Create a new commit in the repository using `git_object`
  * instances as parameters.
@@ -326,10 +330,6 @@ init path isBare = alloca $ \pprepo -> do
   pstr <- newCString path
   res  <- {#call git_repository_init#} pprepo pstr (fromBool isBare)
   retEither res $ fmap (Right . Repository) $ peek pprepo
-
-retEither :: CInt -> IO (Either GitError a) -> IO (Either GitError a)
-retEither res f | res == 0  = f
-                | otherwise = return . Left . toEnum . fromIntegral $ res
 
 isHeadDetached :: Repository -> IO Bool
 isHeadDetached = repoIs {#call git_repository_head_detached#}
