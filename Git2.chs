@@ -25,6 +25,7 @@ newtype Blob       = Blob CPtr
 newtype ObjID      = ObjID CPtr
 newtype Commit     = Commit CPtr
 newtype Signature  = Signature CPtr
+newtype Tree       = Tree CPtr
 
 defaultPort :: String
 defaultPort = "9418" -- TODO: Import from net.h?
@@ -103,6 +104,7 @@ retMaybeRes :: CInt -> IO (Maybe GitError)
 retMaybeRes res | res == 0  = return Nothing
                 | otherwise = return $ Just . toEnum . fromIntegral $ res
 
+-- TODO: CPtr here?
 blobFromBuffer :: ObjID -> Repository -> CPtr -> IO (Maybe GitError)
 blobFromBuffer (ObjID objId) (Repository repo) buf = do
   res <- {#call git_blob_create_frombuffer#} objId repo buf
@@ -146,16 +148,12 @@ author :: Commit -> Signature
 author (Commit c) = unsafePerformIO $
   return . Signature =<< {#call unsafe git_commit_author#} c
 
-{-
-/**
- * Get the tree pointed to by a commit.
- *
- * @param tree_out pointer where to store the tree object
- * @param commit a previously loaded commit.
- * @return 0 on success; error code otherwise
- */
-GIT_EXTERN(int) git_commit_tree(git_tree **tree_out, git_commit *commit);
+tree :: Commit -> IO (Either GitError Tree)
+tree (Commit c) = alloca $ \tree -> do
+  res <- {#call git_commit_tree#} tree c
+  retEither res $ fmap (Right . Tree) $ peek tree
 
+{-
 /**
  * Get the id of the tree pointed to by a commit. This differs from
  * `git_commit_tree` in that no attempts are made to fetch an object
@@ -173,17 +171,14 @@ GIT_EXTERN(const git_oid *) git_commit_tree_oid(git_commit *commit);
  * @return integer of count of parents
  */
 GIT_EXTERN(unsigned int) git_commit_parentcount(git_commit *commit);
+-}
 
-/**
- * Get the specified parent of the commit.
- *
- * @param parent Pointer where to store the parent commit
- * @param commit a previously loaded commit.
- * @param n the position of the parent (from 0 to `parentcount`)
- * @return 0 on success; error code otherwise
- */
-GIT_EXTERN(int) git_commit_parent(git_commit **parent, git_commit *commit, unsigned int n);
+parent :: Commit -> Int -> IO (Either GitError Commit)
+parent (Commit c) n = alloca $ \parent -> do
+  res <- {#call git_commit_parent#} parent c (fromIntegral n)
+  retEither res $ fmap (Right . Commit) $ peek parent
 
+{-
 /**
  * Get the oid of a specified parent for a commit. This is different from
  * `git_commit_parent`, which will attempt to load the parent commit from
