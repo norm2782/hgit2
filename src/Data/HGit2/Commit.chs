@@ -5,7 +5,6 @@
 
 module Data.HGit2.Commit where
 
-import Data.Bits
 import Data.HGit2.Git2
 import Data.HGit2.Errors
 import Data.HGit2.Repository
@@ -13,11 +12,10 @@ import Data.HGit2.Types
 import Data.HGit2.Object
 import Data.HGit2.Signature
 import Data.HGit2.Tree
-import Data.Maybe
+import Data.Maybe ()
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
-import System.IO.Unsafe
 
 newtype Commit = Commit CPtr
 
@@ -50,9 +48,9 @@ author (Commit c) = unsafePerformIO $
   return . Signature =<< {#call unsafe git_commit_author#} c
 
 tree :: Commit -> IO (Either GitError Tree)
-tree (Commit c) = alloca $ \tree -> do
-  res <- {#call git_commit_tree#} tree c
-  retEither res $ fmap (Right . Tree) $ peek tree
+tree (Commit c) = alloca $ \tr -> do
+  res <- {#call git_commit_tree#} tr c
+  retEither res $ fmap (Right . Tree) $ peek tr
 
 treeOid :: Commit -> ObjID
 treeOid (Commit c) = unsafePerformIO $
@@ -63,9 +61,9 @@ parentCount (Commit c) =
   return . fromIntegral =<< {#call unsafe git_commit_parentcount#} c
 
 parent :: Commit -> Int -> IO (Either GitError Commit)
-parent (Commit c) n = alloca $ \parent -> do
-  res <- {#call git_commit_parent#} parent c (fromIntegral n)
-  retEither res $ fmap (Right . Commit) $ peek parent
+parent (Commit c) n = alloca $ \prnt -> do
+  res <- {#call git_commit_parent#} prnt c (fromIntegral n)
+  retEither res $ fmap (Right . Commit) $ peek prnt
 
 parentObjID :: Commit -> Int -> IO (Maybe ObjID)
 parentObjID (Commit c) n = do
@@ -76,14 +74,14 @@ parentObjID (Commit c) n = do
 
 createCommit :: ObjID -> Repository -> Maybe String -> Signature -> Signature
              -> String -> Tree -> [Commit] -> IO (Maybe GitError)
-createCommit (ObjID objId) (Repository r) mref (Signature ausig)
+createCommit (ObjID oid) (Repository r) mref (Signature ausig)
              (Signature comsig) msg (Tree t) ps = do
   updRef <- case mref of
               Nothing -> return nullPtr
               Just x  -> newCString x
   msgStr <- newCString msg
   carr   <- newArray [c | Commit c <- ps]
-  res    <- {#call git_commit_create#} objId r updRef ausig comsig msgStr t cnt carr
+  res    <- {#call git_commit_create#} oid r updRef ausig comsig msgStr t cnt carr
   retMaybeRes res
   where cnt = fromIntegral $ length ps
 

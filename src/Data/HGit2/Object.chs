@@ -5,16 +5,12 @@
 
 module Data.HGit2.Object where
 
-import Data.Bits
 import Data.HGit2.Errors
 import Data.HGit2.Types
 import Data.HGit2.Git2
 import Data.HGit2.Repository
-import Data.Maybe
 import Foreign
-import Foreign.C.String
 import Foreign.C.Types
-import System.IO.Unsafe
 
 newtype GitObj     = GitObj CPtr
 newtype ObjID      = ObjID CPtr

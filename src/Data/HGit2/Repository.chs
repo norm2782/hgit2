@@ -5,12 +5,10 @@
 
 module Data.HGit2.Repository where
 
-import Data.Bits
 import Data.HGit2.Errors
 import Data.HGit2.Git2
 import Data.HGit2.Index
 import Data.HGit2.ODB
-import Data.Maybe
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
@@ -23,8 +21,8 @@ repoIs :: Ptr2Int -> Repository -> IO Bool
 repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
 
 openRepo :: String -> IO (Either GitError Repository)
-openRepo path = alloca $ \pprepo -> do
-  pstr <- newCString path
+openRepo pth = alloca $ \pprepo -> do
+  pstr <- newCString pth
   res  <- {#call git_repository_open#} pprepo pstr
   retEither res $ fmap (Right . Repository) $ peek pprepo
 
@@ -48,12 +46,12 @@ openRepoODB dir (ODB db) idxFile workTree = alloca $ \pprepo -> do
   retEither res $ fmap (Right . Repository) $ peek pprepo
 
 discover :: String -> Bool -> String -> IO (Either GitError String)
-discover startPath acrossFs ceilingDirs = alloca $ \path -> do
+discover startPath acrossFs ceilingDirs = alloca $ \pth -> do
   spStr  <- newCString startPath
   cdsStr <- newCString ceilingDirs
-  res    <- {#call git_repository_discover#} path (fromIntegral $ sizeOf path)
+  res    <- {#call git_repository_discover#} pth (fromIntegral $ sizeOf pth)
                                              spStr (fromBool acrossFs) cdsStr
-  retEither res $ fmap Right $ peekCString path
+  retEither res $ fmap Right $ peekCString pth
 
 database :: Repository -> IO ODB
 database (Repository r) = return . ODB =<< {#call git_repository_database#} r
@@ -67,9 +65,9 @@ free :: Repository -> IO ()
 free (Repository r) = {#call git_repository_free#} r
 
 init :: String -> Bool -> IO (Either GitError Repository)
-init path isBare = alloca $ \pprepo -> do
-  pstr <- newCString path
-  res  <- {#call git_repository_init#} pprepo pstr (fromBool isBare)
+init pth bare = alloca $ \pprepo -> do
+  pstr <- newCString pth
+  res  <- {#call git_repository_init#} pprepo pstr (fromBool bare)
   retEither res $ fmap (Right . Repository) $ peek pprepo
 
 isHeadDetached :: Repository -> IO Bool

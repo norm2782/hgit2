@@ -5,12 +5,11 @@
 
 module Data.HGit2.Blob where
 
-import Data.Bits
 import Data.HGit2.Errors
 import Data.HGit2.Git2
 import Data.HGit2.Object
 import Data.HGit2.Repository
-import Data.Maybe
+import Data.Maybe ()
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
@@ -40,14 +39,14 @@ rawBlobSize :: Blob -> IO Int
 rawBlobSize (Blob b) = return . fromIntegral =<< {#call git_blob_rawsize#} b
 
 blobFromFile :: ObjID -> Repository -> String -> IO (Maybe GitError)
-blobFromFile (ObjID obj) (Repository repo) path = do
-  pathStr  <- newCString path
+blobFromFile (ObjID obj) (Repository repo) pth = do
+  pathStr  <- newCString pth
   res      <- {#call git_blob_create_fromfile #} obj repo pathStr
   retMaybeRes res
 
 -- TODO: CPtr here?
 blobFromBuffer :: ObjID -> Repository -> CPtr -> IO (Maybe GitError)
-blobFromBuffer (ObjID objId) (Repository repo) buf = do
-  res <- {#call git_blob_create_frombuffer#} objId repo buf
+blobFromBuffer (ObjID oid) (Repository repo) buf = do
+  res <- {#call git_blob_create_frombuffer#} oid repo buf
                                              (fromIntegral $ sizeOf buf)
   retMaybeRes res

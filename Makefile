@@ -3,7 +3,7 @@ CHSS := $(patsubst src/Data/HGit2/%.chs, src/Data/HGit2/%.hs,$(wildcard src/Data
 default: Main
 
 Main: src/Main.hs $(CHSS)
-	cd src && ghc --make Main.hs -lgit2
+	cd src && ghc --make Main.hs -lgit2 -Wall -fwarn-tabs
 
 %.hs: %.chs
 	c2hs --cppopts='-I.' --cppopts='-U __BLOCKS__' $<
