@@ -90,8 +90,8 @@ rawBlobContent (Blob b) = {#call git_blob_rawcontent#} b
 rawBlobSize :: Blob -> IO Int
 rawBlobSize (Blob b) = return . fromIntegral =<< {#call git_blob_rawsize#} b
 
-createBlobFromFile :: ObjID -> Repository -> String -> IO (Maybe GitError)
-createBlobFromFile (ObjID obj) (Repository repo) path = do
+blobFromFile :: ObjID -> Repository -> String -> IO (Maybe GitError)
+blobFromFile (ObjID obj) (Repository repo) path = do
   pathStr  <- newCString path
   res      <- {#call git_blob_create_fromfile #} obj repo pathStr
   retMaybeRes res
@@ -100,8 +100,8 @@ retMaybeRes :: CInt -> IO (Maybe GitError)
 retMaybeRes res | res == 0  = return Nothing
                 | otherwise = return $ Just . toEnum . fromIntegral $ res
 
-createBlobFromBuffer :: ObjID -> Repository -> CPtr -> Int -> IO (Maybe GitError)
-createBlobFromBuffer (ObjID objid) (Repository repo) buf n = do
+blobFromBuffer :: ObjID -> Repository -> CPtr -> Int -> IO (Maybe GitError)
+blobFromBuffer (ObjID objid) (Repository repo) buf n = do
   res <- {#call git_blob_create_frombuffer#} objid repo buf (fromIntegral n)
   retMaybeRes res
 
@@ -124,28 +124,31 @@ openRepo path = alloca $ \pprepo -> do
   res  <- {#call git_repository_open#} pprepo pstr
   retEither res $ fmap (Right . Repository) $ peek pprepo
 
-openRepoObjDir :: String -> String -> String -> String -> IO (Either GitError Repository)
+openRepoObjDir :: String -> String -> String -> String
+               -> IO (Either GitError Repository)
 openRepoObjDir dir objDir idxFile workTree = alloca $ \pprepo -> do
-  dirStr     <- newCString dir
-  objDirStr  <- newCString objDir
-  idxFileStr <- newCString idxFile
-  wtreeStr   <- newCString workTree
-  res        <- {#call git_repository_open2#} pprepo dirStr objDirStr idxFileStr wtreeStr
+  dirStr  <- newCString dir
+  objDStr <- newCString objDir
+  idxFStr <- newCString idxFile
+  wtrStr  <- newCString workTree
+  res     <- {#call git_repository_open2#} pprepo dirStr objDStr idxFStr wtrStr
   retEither res $ fmap (Right . Repository) $ peek pprepo
 
-openRepoObjDb :: String -> ObjDB -> String -> String -> IO (Either GitError Repository)
+openRepoObjDb :: String -> ObjDB -> String -> String
+              -> IO (Either GitError Repository)
 openRepoObjDb dir (ObjDB db) idxFile workTree = alloca $ \pprepo -> do
-  dirStr     <- newCString dir
-  idxFileStr <- newCString idxFile
-  wtreeStr   <- newCString workTree
-  res        <- {#call git_repository_open3#} pprepo dirStr db idxFileStr wtreeStr
+  dirStr  <- newCString dir
+  idxFStr <- newCString idxFile
+  wtrStr  <- newCString workTree
+  res     <- {#call git_repository_open3#} pprepo dirStr db idxFStr wtrStr
   retEither res $ fmap (Right . Repository) $ peek pprepo
 
 discover :: String -> Bool -> String -> IO (Either GitError String)
 discover startPath acrossFs ceilingDirs = alloca $ \path -> do
   spStr  <- newCString startPath
   cdsStr <- newCString ceilingDirs
-  res    <- {#call git_repository_discover#} path (fromIntegral $ sizeOf path) spStr (fromBool acrossFs) cdsStr
+  res    <- {#call git_repository_discover#} path (fromIntegral $ sizeOf path)
+                                             spStr (fromBool acrossFs) cdsStr
   retEither res $ fmap Right $ peekCString path
 
 database :: Repository -> IO ObjDB
