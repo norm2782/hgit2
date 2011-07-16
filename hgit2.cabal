@@ -21,6 +21,7 @@ Library
   Exposed-Modules:     Data.HGit2.Blob, Data.HGit2.Commit, Data.HGit2.Config,
                        Data.HGit2.Errors, Data.HGit2.Git2, Data.HGit2.Index,
                        Data.HGit2.Object, Data.HGit2.Repository
-  Includes:            git2.h
+  Includes:            ./libgit2/include/git2.h
   Build-Tools:         c2hs
   CC-Options:          -U __BLOCKS__
+  Extra-libraries:     git2

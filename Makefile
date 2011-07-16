@@ -9,6 +9,7 @@ Main: src/Main.hs $(CHSS)
 	c2hs --cppopts='-I.' --cppopts='-U __BLOCKS__' $<
 
 clean:
-	rm -rf dist *.chi *.chs.h Git2.hs *.o *.hi *.i
+	rm -rf dist src/Data/HGit2/*.hs
+	find . -iname "*.chi" -o -iname "*.chs.h" -o -iname "*.[o|i]" -o -iname "*.hi"
 
 .PHONY: clean
