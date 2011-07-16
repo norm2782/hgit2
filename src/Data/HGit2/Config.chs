@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
 
-#include <git2.h>
+#include <git2/config.h>
 
 module Data.HGit2.Config where
 
@@ -12,6 +12,7 @@ import Foreign
 import Foreign.C.String
 import Foreign.C.Types
 
+newtype Config     = Config CPtr
 
 {-
 /**

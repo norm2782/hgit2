@@ -23,4 +23,3 @@ Library
                        Data.HGit2.Object, Data.HGit2.Repository
   Build-Tools:         c2hs
   CC-Options:          -U __BLOCKS__
-  Extra-libraries:     git2

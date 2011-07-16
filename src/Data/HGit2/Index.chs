@@ -1,16 +1,21 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
 
-#include <git2.h>
+#include <git2/index.h>
 
 module Data.HGit2.Index where
 
 import Data.Bits
 import Data.HGit2.Git2
+import Data.HGit2.Errors
 import Data.Maybe
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
+
+newtype Index      = Index CPtr
+newtype IndexEntry = IndexEntry CPtr
+newtype IndexEntryUnMerged = IndexEntryUnMerged CPtr
 
 {#enum define IdxEntry { GIT_IDXENTRY_NAMEMASK as NameMask
                        , GIT_IDXENTRY_STAGEMASK as StageMask

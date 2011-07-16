@@ -1,16 +1,23 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
 
-#include <git2.h>
+#include <git2/repository.h>
 
 module Data.HGit2.Repository where
 
 import Data.Bits
+import Data.HGit2.Errors
 import Data.HGit2.Git2
+import Data.HGit2.Index
+import Data.HGit2.ODB
 import Data.Maybe
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
+
+newtype Repository = Repository CPtr
+
+{#enum git_repository_pathid as RepositoryPathID {underscoreToCase}#}
 
 repoIs :: Ptr2Int -> Repository -> IO Bool
 repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
@@ -31,9 +38,9 @@ openRepoObjDir dir objDir idxFile workTree = alloca $ \pprepo -> do
   res     <- {#call git_repository_open2#} pprepo dirStr objDStr idxFStr wtrStr
   retEither res $ fmap (Right . Repository) $ peek pprepo
 
-openRepoObjDb :: String -> ObjDB -> String -> String
+openRepoODB :: String -> ODB -> String -> String
               -> IO (Either GitError Repository)
-openRepoObjDb dir (ObjDB db) idxFile workTree = alloca $ \pprepo -> do
+openRepoODB dir (ODB db) idxFile workTree = alloca $ \pprepo -> do
   dirStr  <- newCString dir
   idxFStr <- newCString idxFile
   wtrStr  <- newCString workTree
@@ -48,8 +55,8 @@ discover startPath acrossFs ceilingDirs = alloca $ \path -> do
                                              spStr (fromBool acrossFs) cdsStr
   retEither res $ fmap Right $ peekCString path
 
-database :: Repository -> IO ObjDB
-database (Repository r) = return . ObjDB =<< {#call git_repository_database#} r
+database :: Repository -> IO ODB
+database (Repository r) = return . ODB =<< {#call git_repository_database#} r
 
 index :: Repository -> IO (Either GitError Index)
 index (Repository r) = alloca $ \idx -> do

@@ -1,17 +1,15 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE CPP #-}
 
-#include <git2.h>
+#include <git2/tree.h>
 
-module Data.HGit2.Git2 where
+module Data.HGit2.Tree where
 
 import Data.Bits
+import Data.HGit2.Git2
 import Data.Maybe
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
-import System.IO.Unsafe
 
-type CPtr    = Ptr ()
-type Ptr2Int = CPtr -> IO CInt
+newtype Tree = Tree CPtr

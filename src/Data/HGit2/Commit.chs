@@ -1,17 +1,25 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
 
-#include <git2.h>
+#include <git2/commit.h>
 
 module Data.HGit2.Commit where
 
 import Data.Bits
 import Data.HGit2.Git2
+import Data.HGit2.Errors
+import Data.HGit2.Repository
+import Data.HGit2.Types
+import Data.HGit2.Object
+import Data.HGit2.Signature
+import Data.HGit2.Tree
 import Data.Maybe
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
 import System.IO.Unsafe
+
+newtype Commit = Commit CPtr
 
 commitId :: Commit -> ObjID
 commitId (Commit c) = unsafePerformIO $

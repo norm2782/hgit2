@@ -1,17 +1,24 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
 
-#include <git2.h>
+#include <git2/object.h>
 
 module Data.HGit2.Object where
 
 import Data.Bits
+import Data.HGit2.Errors
+import Data.HGit2.Types
 import Data.HGit2.Git2
+import Data.HGit2.Repository
 import Data.Maybe
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
 import System.IO.Unsafe
+
+newtype GitObj     = GitObj CPtr
+newtype ObjID      = ObjID CPtr
+
 
 -- | Lookup a reference to one of the objects in a repostory.
 lookupObj :: Repository -> ObjID -> OType -> IO (Either GitError GitObj)

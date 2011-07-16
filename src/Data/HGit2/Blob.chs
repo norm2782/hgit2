@@ -1,16 +1,21 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
 
-#include <git2.h>
+#include <git2/blob.h>
 
 module Data.HGit2.Blob where
 
 import Data.Bits
+import Data.HGit2.Errors
 import Data.HGit2.Git2
+import Data.HGit2.Object
+import Data.HGit2.Repository
 import Data.Maybe
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
+
+newtype Blob       = Blob CPtr
 
 {-
 /**
