@@ -51,16 +51,18 @@ Source-Repository head
 
 Library
   -- Modules exported by the library.
-  Exposed-modules:     Git2, Main
+  Exposed-modules:     Data.HGit2.Blob, Data.HGit2.Commit, Data.HGit2.Config,
+                       Data.HGit2.Errors, Data.HGit2.Git2, Data.HGit2.Index,
+                       Data.HGit2.Object, Data.HGit2.Repository
 
   Includes:            git2.h
 
   -- Packages needed in order to build this package.
-  -- Build-depends:       
-  
+  -- Build-depends:
+
   -- Modules not exported by this package.
-  -- Other-modules:       
-  
+  -- Other-modules:
+
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   Build-tools:         c2hs
   CC-Options:          -U __BLOCKS__
