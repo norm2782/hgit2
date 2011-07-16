@@ -1,6 +1,13 @@
 module Main where
 
-import Git2
+import Data.HGit2.Blob
+import Data.HGit2.Commit
+import Data.HGit2.Config
+import Data.HGit2.Errors
+import Data.HGit2.Git2
+import Data.HGit2.Index
+import Data.HGit2.Object
+import Data.HGit2.Repository
 
 main :: IO ()
 main = do

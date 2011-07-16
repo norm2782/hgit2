@@ -1,0 +1,7 @@
+*.o
+*.chi
+*.hi
+*.h
+src/Data/HGit2/*.hs
+src/Main
+dist/
