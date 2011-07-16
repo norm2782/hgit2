@@ -19,6 +19,8 @@ type Ptr2Int = CPtr -> IO CInt
 newtype ObjDB      = ObjDB CPtr
 newtype Repository = Repository CPtr
 newtype Index      = Index CPtr
+newtype Blob       = Blob CPtr
+newtype ObjID      = ObjID CPtr
 
 defaultPort :: String
 defaultPort = "9418" -- TODO: Import from net.h?
@@ -55,8 +57,6 @@ defaultPort = "9418" -- TODO: Import from net.h?
 
 {#enum git_otype as OType {underscoreToCase}#}
 {#enum git_rtype as RType {underscoreToCase}#}
-{#enum git_oid as OID {underscoreToCase}#}
-{#enum git_blob as Blob {underscoreToCase}#}
 {#enum git_repository_pathid as RepositoryPathID {underscoreToCase}#}
 {#enum git_error as GitError {underscoreToCase}#}
 {#enum git_odb_streammode as ODBStreamMode {underscoreToCase}#}
@@ -79,7 +79,7 @@ deriving instance Show GitError
  */
 GIT_INLINE(int) git_blob_lookup(git_blob **blob, git_repository *repo, const git_oid *id)
 -}
-blobLookup :: Repository -> OID -> IO (Either GitError Blob)
+blobLookup :: Repository -> ObjID -> IO (Either GitError Blob)
 blobLookup = undefined
 
 
@@ -102,7 +102,7 @@ GIT_INLINE(int) git_blob_lookup_prefix(git_blob **blob, git_repository *repo, co
 	return git_object_lookup_prefix((git_object **)blob, repo, id, len, GIT_OBJ_BLOB);
 }
 -}
-blobLookupPrefix :: Repository -> OID -> Int -> IO (Either GitError Blob)
+blobLookupPrefix :: Repository -> ObjID -> Int -> IO (Either GitError Blob)
 blobLookupPrefix = undefined
 
 
@@ -172,8 +172,8 @@ rawBlobSize = undefined
  */
 GIT_EXTERN(int) git_blob_create_fromfile(git_oid *oid, git_repository *repo, const char *path);
 -}
-createBlobFromFile :: OID -> Repository -> String -> IO (Maybe GitError)
-createBlobFromFile (OID o) (Repository r) path = do
+createBlobFromFile :: ObjID -> Repository -> String -> IO (Maybe GitError)
+createBlobFromFile (ObjID o) (Repository r) path = do
   pathStr  <- newCString path
   res      <- {#call git_blob_create_fromfile #} o r pathStr
   if res == 0
@@ -192,7 +192,7 @@ createBlobFromFile (OID o) (Repository r) path = do
  */
 GIT_EXTERN(int) git_blob_create_frombuffer(git_oid *oid, git_repository *repo, const void *buffer, size_t len);
 -}
--- createBlobFromBuffer :: OID -> Repository -> ... -> Int -> IO (Maybe GitError)
+-- createBlobFromBuffer :: ObjID -> Repository -> ... -> Int -> IO (Maybe GitError)
 createBlobFromBuffer = undefined
 
 
