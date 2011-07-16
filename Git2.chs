@@ -11,6 +11,7 @@ import Data.ByteString
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
+import System.IO.Unsafe
 
 type OffT    = {#type git_off_t#}
 type TimeT   = {#type git_time_t#}
@@ -22,6 +23,8 @@ newtype Repository = Repository CPtr
 newtype Index      = Index CPtr
 newtype Blob       = Blob CPtr
 newtype ObjID      = ObjID CPtr
+newtype Commit     = Commit CPtr
+newtype Signature  = Signature CPtr
 
 defaultPort :: String
 defaultPort = "9418" -- TODO: Import from net.h?
@@ -100,13 +103,174 @@ retMaybeRes :: CInt -> IO (Maybe GitError)
 retMaybeRes res | res == 0  = return Nothing
                 | otherwise = return $ Just . toEnum . fromIntegral $ res
 
-blobFromBuffer :: ObjID -> Repository -> CPtr -> Int -> IO (Maybe GitError)
-blobFromBuffer (ObjID objid) (Repository repo) buf n = do
-  res <- {#call git_blob_create_frombuffer#} objid repo buf (fromIntegral n)
+blobFromBuffer :: ObjID -> Repository -> CPtr -> IO (Maybe GitError)
+blobFromBuffer (ObjID objId) (Repository repo) buf = do
+  res <- {#call git_blob_create_frombuffer#} objId repo buf
+                                             (fromIntegral $ sizeOf buf)
   retMaybeRes res
 
 -------------------------------------------------------------------------------
 -- END: blob.h
+-------------------------------------------------------------------------------
+
+
+-------------------------------------------------------------------------------
+-- BEGIN: commit.h
+-------------------------------------------------------------------------------
+
+commitId :: Commit -> ObjID
+commitId (Commit c) = unsafePerformIO $
+  return . ObjID =<< {#call unsafe git_commit_id#} c
+
+shortCommitMsg :: Commit -> String
+shortCommitMsg (Commit c) = unsafePerformIO $
+  peekCString =<< {#call unsafe git_commit_message_short#} c
+
+commitMsg :: Commit -> String
+commitMsg (Commit c) = unsafePerformIO $
+  peekCString =<< {#call unsafe git_commit_message#} c
+
+commitTime :: Commit -> TimeT
+commitTime (Commit c) = unsafePerformIO $
+  return =<< {#call unsafe git_commit_time#} c
+
+timeOffset :: Commit -> Int
+timeOffset (Commit c) = unsafePerformIO $
+  return . fromIntegral =<< {#call unsafe git_commit_time_offset#} c
+
+committer :: Commit -> Signature
+committer (Commit c) = unsafePerformIO $
+  return . Signature =<< {#call unsafe git_commit_committer#} c
+
+author :: Commit -> Signature
+author (Commit c) = unsafePerformIO $
+  return . Signature =<< {#call unsafe git_commit_author#} c
+
+{-
+/**
+ * Get the tree pointed to by a commit.
+ *
+ * @param tree_out pointer where to store the tree object
+ * @param commit a previously loaded commit.
+ * @return 0 on success; error code otherwise
+ */
+GIT_EXTERN(int) git_commit_tree(git_tree **tree_out, git_commit *commit);
+
+/**
+ * Get the id of the tree pointed to by a commit. This differs from
+ * `git_commit_tree` in that no attempts are made to fetch an object
+ * from the ODB.
+ *
+ * @param commit a previously loaded commit.
+ * @return the id of tree pointed to by commit.
+ */
+GIT_EXTERN(const git_oid *) git_commit_tree_oid(git_commit *commit);
+
+/**
+ * Get the number of parents of this commit
+ *
+ * @param commit a previously loaded commit.
+ * @return integer of count of parents
+ */
+GIT_EXTERN(unsigned int) git_commit_parentcount(git_commit *commit);
+
+/**
+ * Get the specified parent of the commit.
+ *
+ * @param parent Pointer where to store the parent commit
+ * @param commit a previously loaded commit.
+ * @param n the position of the parent (from 0 to `parentcount`)
+ * @return 0 on success; error code otherwise
+ */
+GIT_EXTERN(int) git_commit_parent(git_commit **parent, git_commit *commit, unsigned int n);
+
+/**
+ * Get the oid of a specified parent for a commit. This is different from
+ * `git_commit_parent`, which will attempt to load the parent commit from
+ * the ODB.
+ *
+ * @param commit a previously loaded commit.
+ * @param n the position of the parent (from 0 to `parentcount`)
+ * @return the id of the parent, NULL on error.
+ */
+GIT_EXTERN(const git_oid *) git_commit_parent_oid(git_commit *commit, unsigned int n);
+
+/**
+ * Create a new commit in the repository using `git_object`
+ * instances as parameters.
+ *
+ * @param oid Pointer where to store the OID of the
+ *	newly created commit
+ *
+ * @param repo Repository where to store the commit
+ *
+ * @param update_ref If not NULL, name of the reference that
+ *	will be updated to point to this commit. If the reference
+ *	is not direct, it will be resolved to a direct reference.
+ *	Use "HEAD" to update the HEAD of the current branch and
+ *	make it point to this commit
+ *
+ * @param author Signature representing the author and the authory
+ *	time of this commit
+ *
+ * @param committer Signature representing the committer and the
+ *  commit time of this commit
+ *
+ * @param message Full message for this commit
+ *
+ * @param tree An instance of a `git_tree` object that will
+ * be used as the tree for the commit. This tree object must
+ * also be owned by the given `repo`.
+ *
+ * @param parent_count Number of parents for this commit
+ *
+ * @param parents[] Array of `parent_count` pointers to `git_commit`
+ * objects that will be used as the parents for this commit. This
+ * array may be NULL if `parent_count` is 0 (root commit). All the
+ * given commits must be owned by the `repo`.
+ *
+ * @return 0 on success; error code otherwise
+ *	The created commit will be written to the Object Database and
+ *	the given reference will be updated to point to it
+ */
+GIT_EXTERN(int) git_commit_create(
+		git_oid *oid,
+		git_repository *repo,
+		const char *update_ref,
+		const git_signature *author,
+		const git_signature *committer,
+		const char *message,
+		const git_tree *tree,
+		int parent_count,
+		const git_commit *parents[]);
+
+/**
+ * Create a new commit in the repository using a variable
+ * argument list.
+ *
+ * The parents for the commit are specified as a variable
+ * list of pointers to `const git_commit *`. Note that this
+ * is a convenience method which may not be safe to export
+ * for certain languages or compilers
+ *
+ * All other parameters remain the same
+ *
+ * @see git_commit_create
+ */
+GIT_EXTERN(int) git_commit_create_v(
+		git_oid *oid,
+		git_repository *repo,
+		const char *update_ref,
+		const git_signature *author,
+		const git_signature *committer,
+		const char *message,
+		const git_tree *tree,
+		int parent_count,
+		...);
+-}
+
+-------------------------------------------------------------------------------
+-- END: commit.h
 -------------------------------------------------------------------------------
 
 
