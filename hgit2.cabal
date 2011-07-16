@@ -4,22 +4,23 @@ Synopsis:            Bindings for libgit2
 Description:         Low level bindings for libgit2.
 Homepage:            https://github.com/norm2782/hgit2
 License:             BSD3
-License-file:        LICENSE
+License-File:        LICENSE
 Author:              Jurriën Stutterheim
 Maintainer:          j.stutterheim@me.com
 Category:            Data
 
-Build-type:          Simple
-Cabal-version:       >= 1.6
+Build-Type:          Simple
+Cabal-Version:       >= 1.6
 
 Source-Repository head
   type:     git
   location: https://github.com/norm2782/hgit2.git
 
 Library
-  Exposed-modules:     Data.HGit2.Blob, Data.HGit2.Commit, Data.HGit2.Config,
+  HS-Source-Dirs:      src
+  Exposed-Modules:     Data.HGit2.Blob, Data.HGit2.Commit, Data.HGit2.Config,
                        Data.HGit2.Errors, Data.HGit2.Git2, Data.HGit2.Index,
                        Data.HGit2.Object, Data.HGit2.Repository
   Includes:            git2.h
-  Build-tools:         c2hs
+  Build-Tools:         c2hs
   CC-Options:          -U __BLOCKS__

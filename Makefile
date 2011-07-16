@@ -9,6 +9,6 @@ Main: src/Main.hs $(CHSS)
 	c2hs --cppopts='-I.' --cppopts='-U __BLOCKS__' $<
 
 clean:
-	rm *.chi *.chs.h Git2.hs *.o *.hi
+	rm -rf dist *.chi *.chs.h Git2.hs *.o *.hi *.i
 
 .PHONY: clean
