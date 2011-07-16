@@ -12,7 +12,7 @@ import Data.HGit2.Repository
 main :: IO ()
 main = do
   putStrLn "Opening repo in pwd"
-  r <- openRepo "/Users/norm2782/src/libgit2/include/.git"
+  r <- openRepo "/Users/norm2782/src/hgit2/.git"
   putStrLn "Opened repo"
   case r of
     (Left err)   -> putStrLn $ "Error: " ++ show err

@@ -3,7 +3,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-#include "git2.h"
+#include <git2.h>
 
 module Data.HGit2.Git2 where
 

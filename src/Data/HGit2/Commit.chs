@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
 
-#include "git2.h"
+#include <git2.h>
 
 module Data.HGit2.Commit where
 
