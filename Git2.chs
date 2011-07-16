@@ -67,67 +67,6 @@ deriving instance Show GitError
 -- BEGIN: blob.h
 -------------------------------------------------------------------------------
 
-
-{-
-/**
- * Lookup a blob object from a repository.
- *
- * @param blob pointer to the looked up blob
- * @param repo the repo to use when locating the blob.
- * @param id identity of the blob to locate.
- * @return 0 on success; error code otherwise
- */
-GIT_INLINE(int) git_blob_lookup(git_blob **blob, git_repository *repo, const git_oid *id)
--}
-blobLookup :: Repository -> ObjID -> IO (Either GitError Blob)
-blobLookup = undefined
-
-
-{-
-
-/**
- * Lookup a blob object from a repository,
- * given a prefix of its identifier (short id).
- *
- * @see git_object_lookup_prefix
- *
- * @param blob pointer to the looked up blob
- * @param repo the repo to use when locating the blob.
- * @param id identity of the blob to locate.
- * @param len the length of the short identifier
- * @return 0 on success; error code otherwise
- */
-GIT_INLINE(int) git_blob_lookup_prefix(git_blob **blob, git_repository *repo, const git_oid *id, unsigned int len)
-{
-	return git_object_lookup_prefix((git_object **)blob, repo, id, len, GIT_OBJ_BLOB);
-}
--}
-blobLookupPrefix :: Repository -> ObjID -> Int -> IO (Either GitError Blob)
-blobLookupPrefix = undefined
-
-
-{-
-/**
- * Close an open blob
- *
- * This is a wrapper around git_object_close()
- *
- * IMPORTANT:
- * It *is* necessary to call this method when you stop
- * using a blob. Failure to do so will cause a memory leak.
- *
- * @param blob the blob to close
- */
-
-GIT_INLINE(void) git_blob_close(git_blob *blob)
-{
-	git_object_close((git_object *) blob);
-}
--}
-closeBlob :: Blob -> IO ()
-closeBlob = undefined
-
-
 {-
 /**
  * Get a read-only buffer with the raw content of a blob.
@@ -155,8 +94,8 @@ rawBlobContent = undefined
  */
 GIT_EXTERN(int) git_blob_rawsize(git_blob *blob);
 -}
-rawBlobSize :: Blob -> Int
-rawBlobSize = undefined
+rawBlobSize :: Blob -> IO Int
+rawBlobSize (Blob b) = return . fromIntegral =<< {#call git_blob_rawsize#} b
 
 {-
 /**
