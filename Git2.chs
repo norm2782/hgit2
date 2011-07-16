@@ -7,6 +7,7 @@
 
 module Git2 where
 
+import Data.ByteString
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
@@ -81,59 +82,28 @@ deriving instance Show GitError
  */
 GIT_EXTERN(const void *) git_blob_rawcontent(git_blob *blob);
 -}
--- Return raw bytestring ? :x
-rawBlobContent = undefined
+-- TODO: Could the next two be made "pure"
+-- TODO: Figure out what this function should return...
+rawBlobContent :: Blob -> IO CPtr
+rawBlobContent (Blob b) = {#call git_blob_rawcontent#} b
 
-
-{-
-/**
- * Get the size in bytes of the contents of a blob
- *
- * @param blob pointer to the blob
- * @return size on bytes
- */
-GIT_EXTERN(int) git_blob_rawsize(git_blob *blob);
--}
 rawBlobSize :: Blob -> IO Int
 rawBlobSize (Blob b) = return . fromIntegral =<< {#call git_blob_rawsize#} b
 
-{-
-/**
- * Read a file from the working folder of a repository
- * and write it to the Object Database as a loose blob
- *
- * @param oid return the id of the written blob
- * @param repo repository where the blob will be written.
- *	this repository cannot be bare
- * @param path file from which the blob will be created,
- *	relative to the repository's working dir
- * @return 0 on success; error code otherwise
- */
-GIT_EXTERN(int) git_blob_create_fromfile(git_oid *oid, git_repository *repo, const char *path);
--}
 createBlobFromFile :: ObjID -> Repository -> String -> IO (Maybe GitError)
-createBlobFromFile (ObjID o) (Repository r) path = do
+createBlobFromFile (ObjID obj) (Repository repo) path = do
   pathStr  <- newCString path
-  res      <- {#call git_blob_create_fromfile #} o r pathStr
-  if res == 0
-    then return Nothing
-    else return $ Just . toEnum . fromIntegral $ res
+  res      <- {#call git_blob_create_fromfile #} obj repo pathStr
+  retMaybeRes res
 
-{-
-/**
- * Write an in-memory buffer to the ODB as a blob
- *
- * @param oid return the oid of the written blob
- * @param repo repository where to blob will be written
- * @param buffer data to be written into the blob
- * @param len length of the data
- * @return 0 on success; error code otherwise
- */
-GIT_EXTERN(int) git_blob_create_frombuffer(git_oid *oid, git_repository *repo, const void *buffer, size_t len);
--}
--- createBlobFromBuffer :: ObjID -> Repository -> ... -> Int -> IO (Maybe GitError)
-createBlobFromBuffer = undefined
+retMaybeRes :: CInt -> IO (Maybe GitError)
+retMaybeRes res | res == 0  = return Nothing
+                | otherwise = return $ Just . toEnum . fromIntegral $ res
 
+createBlobFromBuffer :: ObjID -> Repository -> CPtr -> Int -> IO (Maybe GitError)
+createBlobFromBuffer (ObjID objid) (Repository repo) buf n = do
+  res <- {#call git_blob_create_frombuffer#} objid repo buf (fromIntegral n)
+  retMaybeRes res
 
 -------------------------------------------------------------------------------
 -- END: blob.h
