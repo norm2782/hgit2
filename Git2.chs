@@ -7,7 +7,7 @@
 
 module Git2 where
 
-import Data.ByteString
+import Data.Maybe
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
@@ -161,25 +161,13 @@ tree (Commit c) = alloca $ \tree -> do
   res <- {#call git_commit_tree#} tree c
   retEither res $ fmap (Right . Tree) $ peek tree
 
-{-
-/**
- * Get the id of the tree pointed to by a commit. This differs from
- * `git_commit_tree` in that no attempts are made to fetch an object
- * from the ODB.
- *
- * @param commit a previously loaded commit.
- * @return the id of tree pointed to by commit.
- */
-GIT_EXTERN(const git_oid *) git_commit_tree_oid(git_commit *commit);
+treeOid :: Commit -> ObjID
+treeOid (Commit c) = unsafePerformIO $
+  return . ObjID =<< {#call unsafe git_commit_tree_oid#} c
 
-/**
- * Get the number of parents of this commit
- *
- * @param commit a previously loaded commit.
- * @return integer of count of parents
- */
-GIT_EXTERN(unsigned int) git_commit_parentcount(git_commit *commit);
--}
+parentCount :: Commit -> IO Int
+parentCount (Commit c) =
+  return . fromIntegral =<< {#call unsafe git_commit_parentcount#} c
 
 parent :: Commit -> Int -> IO (Either GitError Commit)
 parent (Commit c) n = alloca $ \parent -> do
@@ -242,31 +230,20 @@ GIT_EXTERN(int) git_commit_create(
 		const git_tree *tree,
 		int parent_count,
 		const git_commit *parents[]);
-
-/**
- * Create a new commit in the repository using a variable
- * argument list.
- *
- * The parents for the commit are specified as a variable
- * list of pointers to `const git_commit *`. Note that this
- * is a convenience method which may not be safe to export
- * for certain languages or compilers
- *
- * All other parameters remain the same
- *
- * @see git_commit_create
- */
-GIT_EXTERN(int) git_commit_create_v(
-		git_oid *oid,
-		git_repository *repo,
-		const char *update_ref,
-		const git_signature *author,
-		const git_signature *committer,
-		const char *message,
-		const git_tree *tree,
-		int parent_count,
-		...);
 -}
+
+createCommit :: ObjID -> Repository -> Maybe String -> Signature -> Signature
+             -> String -> Tree -> [Commit] -> IO (Maybe GitError)
+createCommit (ObjID objId) (Repository r) mref (Signature ausig)
+             (Signature comsig) msg (Tree t) ps = do
+  updRef <- case mref of
+              Nothing -> return nullPtr
+              Just x  -> newCString x
+  msgStr <- newCString msg
+  carr   <- newArray [c | Commit c <- ps]
+  res    <- {#call git_commit_create#} objId r updRef ausig comsig msgStr t cnt carr
+  retMaybeRes res
+  where cnt = fromIntegral $ length ps
 
 -------------------------------------------------------------------------------
 -- END: commit.h
