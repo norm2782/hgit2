@@ -1,0 +1,15 @@
+config.h
+object.h
+odb.h
+odb_backend.h
+oid.h
+reflog.h
+refs.h
+refspec.h
+remote.h
+revwalk.h
+signature.h
+status.h
+tag.h
+transport.h
+tree.h
