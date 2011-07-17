@@ -12,4 +12,3 @@ signature.h
 status.h
 tag.h
 transport.h
-tree.h

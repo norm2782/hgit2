@@ -10,14 +10,14 @@ import Data.HGit2.OID
 import Data.HGit2.Repository
 import Data.HGit2.Errors
 import Data.HGit2.Types
+import Data.HGit2.Object
+import Data.HGit2.Index
 import Foreign
 import Foreign.C
-import System.IO.Unsafe
 
 newtype Tree        = Tree CPtr
 newtype TreeEntry   = TreeEntry CPtr
 newtype TreeBuilder = TreeBuilder CPtr
-
 
 ioIntRet :: Integral a => IO a -> IO Int
 ioIntRet f = return . fromIntegral =<< f
@@ -59,54 +59,25 @@ entryType :: TreeEntry -> IO OType
 entryType (TreeEntry t) =
   fmap (toEnum . fromIntegral) $ {#call git_tree_entry_type#} t
 
-{-
-/**
- * Convert a tree entry to the git_object it points too.
- *
- * @param object pointer to the converted object
- * @param repo repository where to lookup the pointed object
- * @param entry a tree entry
- * @return 0 on success; error code otherwise
- */
-GIT_EXTERN(int) git_tree_entry_2object(git_object **object_out, git_repository *repo, const git_tree_entry *entry);
+-- | Convert a tree entry to the git_object it points too.
+entryToObj :: Repository -> TreeEntry -> IO (Either GitError GitObj)
+entryToObj (Repository r) (TreeEntry t) = alloca $ \obj -> do
+  res <- {#call git_tree_entry_2object#} obj r t
+  retEither res $ fmap (Right . GitObj) $ peek obj
 
-/**
- * Write a tree to the ODB from the index file
- *
- * This method will scan the index and write a representation
- * of its current state back to disk; it recursively creates
- * tree objects for each of the subtrees stored in the index,
- * but only returns the OID of the root tree. This is the OID
- * that can be used e.g. to create a commit.
- *
- * The index instance cannot be bare, and needs to be associated
- * to an existing repository.
- *
- * @param oid Pointer where to store the written tree
- * @param index Index to write
- * @return 0 on success; error code otherwise
- */
-GIT_EXTERN(int) git_tree_create_fromindex(git_oid *oid, git_index *index);
+-- Write a tree to the ODB from the index file
+createFromIndex :: OID -> Index -> IO (Maybe GitError)
+createFromIndex (OID o) (Index i) =
+  retMaybeRes =<< {#call git_tree_create_fromindex#} o i
 
-/**
- * Create a new tree builder.
- *
- * The tree builder can be used to create or modify
- * trees in memory and write them as tree objects to the
- * database.
- *
- * If the `source` parameter is not NULL, the tree builder
- * will be initialized with the entries of the given tree.
- *
- * If the `source` parameter is NULL, the tree builder will
- * have no entries and will have to be filled manually.
- *
- * @param builder_p Pointer where to store the tree builder
- * @param source Source tree to initialize the builder (optional)
- * @return 0 on sucess; error code otherwise
- */
-GIT_EXTERN(int) git_treebuilder_create(git_treebuilder **builder_p, const git_tree *source);
--}
+-- | Create a new tree builder
+createTreeBuilder :: Maybe Tree -> IO (Either GitError TreeBuilder)
+createTreeBuilder tr = alloca $ \builder -> do
+  res <- {#call git_treebuilder_create#} builder t
+  retEither res $ fmap (Right . TreeBuilder) $ peek builder
+  where t = case tr of
+              Nothing       -> nullPtr
+              Just (Tree x) -> x
 
 -- | Clear all the entires in the builder
 clearTreeBuilder :: TreeBuilder -> IO ()
@@ -116,40 +87,22 @@ clearTreeBuilder (TreeBuilder t) = {#call git_treebuilder_clear#} t
 freeTreeBuilder :: TreeBuilder -> IO ()
 freeTreeBuilder (TreeBuilder t) = {#call git_treebuilder_free#} t
 
-{-
-/**
- * Get an entry from the builder from its filename
- *
- * The returned entry is owned by the builder and should
- * not be freed manually.
- *
- * @param bld Tree builder
- * @param filename Name of the entry
- * @return pointer to the entry; NULL if not found
- */
-GIT_EXTERN(const git_tree_entry *) git_treebuilder_get(git_treebuilder *bld, const char *filename);
+-- Get an entry from the builder from its filename
+getTreeBuilder :: TreeBuilder -> String -> IO (Maybe TreeEntry)
+getTreeBuilder (TreeBuilder b) fn = do
+  fn' <- newCString fn
+  res <- {#call git_treebuilder_get#} b fn'
+  return $ if res == nullPtr
+             then Nothing
+             else Just $ TreeEntry res
 
-/**
- * Add or update an entry to the builder
- *
- * Insert a new entry for `filename` in the builder with the
- * given attributes.
- *
- * if an entry named `filename` already exists, its attributes
- * will be updated with the given ones.
- *
- * The optional pointer `entry_out` can be used to retrieve a
- * pointer to the newly created/updated entry.
- *
- * @param entry_out Pointer to store the entry (optional)
- * @param bld Tree builder
- * @param filename Filename of the entry
- * @param id SHA1 oid of the entry
- * @param attributes Folder attributes of the entry
- * @return 0 on success; error code otherwise
- */
-GIT_EXTERN(int) git_treebuilder_insert(git_tree_entry **entry_out, git_treebuilder *bld, const char *filename, const git_oid *id, unsigned int attributes);
--}
+-- | Add or update an entry to the builder
+insertTreeBuilder :: TreeBuilder -> String -> OID -> Int
+                  -> IO (Either GitError TreeEntry)
+insertTreeBuilder (TreeBuilder b) fn (OID o) as = alloca $ \entry -> do
+  fn' <- newCString fn
+  res <- {#call git_treebuilder_insert#} entry b fn' o (fromIntegral as)
+  retEither res $ fmap (Right . TreeEntry) $ peek entry
 
 -- | Remove an entry from the builder by its filename
 removeTreeBuilder :: TreeBuilder -> String -> IO (Maybe GitError)
@@ -170,7 +123,11 @@ removeTreeBuilder (TreeBuilder t) fn = do
  * @param filter Callback to filter entries
  */
 GIT_EXTERN(void) git_treebuilder_filter(git_treebuilder *bld, int (*filter)(const git_tree_entry *, void *), void *payload);
+TODO: How to handle callbacks?
+-- TODO: what do we make these CPtrs?
 -}
+-- filterTreeBuilder :: TreeBuilder -> TreeEntry -> CPtr -> CPtr -> IO ()
+-- filterTreeBuilder (TreeBuilder b) (TreeEntry e) v p = {#call git_treebuilder_filter#} b -- TODO: What? (FunPtr e v) p
 
 -- | Write the contents of the tree builder as a tree object
 writeTreeBuilder :: OID -> Repository -> TreeBuilder -> IO (Maybe GitError)

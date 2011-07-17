@@ -9,7 +9,6 @@ import Data.HGit2.Git2
 import Data.HGit2.Errors
 import Data.HGit2.Repository
 import Data.HGit2.Types
-import Data.HGit2.Object
 import Data.HGit2.Signature
 import Data.HGit2.OID
 import Data.HGit2.Tree
@@ -75,12 +74,12 @@ parentOID (Commit c) n = do
 
 createCommit :: OID -> Repository -> Maybe String -> Signature -> Signature
              -> String -> Tree -> [Commit] -> IO (Maybe GitError)
-createCommit (OID oid) (Repository r) mref (Signature ausig)
+createCommit (OID o) (Repository r) mref (Signature ausig)
              (Signature comsig) msg (Tree t) ps = do
   updRef <- case mref of
               Nothing -> return nullPtr
               Just x  -> newCString x
   msgStr <- newCString msg
   carr   <- newArray [c | Commit c <- ps]
-  retMaybeRes =<< {#call git_commit_create#} oid r updRef ausig comsig msgStr t
+  retMaybeRes =<< {#call git_commit_create#} o r updRef ausig comsig msgStr t
                                              (fromIntegral $ length ps) carr

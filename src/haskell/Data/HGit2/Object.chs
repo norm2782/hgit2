@@ -17,8 +17,8 @@ newtype GitObj = GitObj CPtr
 
 -- | Lookup a reference to one of the objects in a repostory.
 lookupObj :: Repository -> OID -> OType -> IO (Either GitError GitObj)
-lookupObj (Repository r) (OID oid) oty = alloca $ \obj -> do
-  res <- {#call git_object_lookup#} obj r oid (fromIntegral $ fromEnum oty)
+lookupObj (Repository r) (OID o) oty = alloca $ \obj -> do
+  res <- {#call git_object_lookup#} obj r o (fromIntegral $ fromEnum oty)
   retEither res $ fmap (Right . GitObj) $ peek obj
 
 -- | Lookup a reference to one of the objects in a repostory, given a prefix of
