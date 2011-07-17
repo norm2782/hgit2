@@ -8,34 +8,33 @@ module Data.HGit2.Object where
 import Data.HGit2.Errors
 import Data.HGit2.Types
 import Data.HGit2.Git2
+import Data.HGit2.OID
 import Data.HGit2.Repository
 import Foreign
 import Foreign.C.Types
 
-newtype GitObj     = GitObj CPtr
-newtype ObjID      = ObjID CPtr
-
+newtype GitObj = GitObj CPtr
 
 -- | Lookup a reference to one of the objects in a repostory.
-lookupObj :: Repository -> ObjID -> OType -> IO (Either GitError GitObj)
-lookupObj (Repository r) (ObjID oid) oty = alloca $ \obj -> do
+lookupObj :: Repository -> OID -> OType -> IO (Either GitError GitObj)
+lookupObj (Repository r) (OID oid) oty = alloca $ \obj -> do
   res <- {#call git_object_lookup#} obj r oid (fromIntegral $ fromEnum oty)
   retEither res $ fmap (Right . GitObj) $ peek obj
 
 -- | Lookup a reference to one of the objects in a repostory, given a prefix of
 -- its identifier (short id).
--- TODO: Calculate size of ObjID dynamically, rather than passing an int
-lookupObjPref :: Repository -> ObjID -> Int -> OType
+-- TODO: Calculate size of OID dynamically, rather than passing an int
+lookupObjPref :: Repository -> OID -> Int -> OType
               -> IO (Either GitError GitObj)
-lookupObjPref (Repository r) (ObjID o) n oty = alloca $ \obj -> do
+lookupObjPref (Repository r) (OID o) n oty = alloca $ \obj -> do
   res <- {#call git_object_lookup_prefix#} obj r o (fromIntegral n)
                                            (fromIntegral $ fromEnum oty)
   retEither res $ fmap (Right . GitObj) $ peek obj
 
 -- | Get the id (SHA1) of a repository object
-objId :: GitObj -> ObjID
-objId (GitObj go) = unsafePerformIO $
-  return . ObjID =<< {#call unsafe git_object_id#} go
+oid :: GitObj -> OID
+oid (GitObj go) = unsafePerformIO $
+  return . OID =<< {#call unsafe git_object_id#} go
 
 -- | Get the object type of an object
 objTy :: GitObj -> OType
