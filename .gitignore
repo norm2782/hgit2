@@ -3,7 +3,7 @@
 *.i
 *.chi
 *.hi
-*.h
+src/haskell/Data/HGit2/*.h
 src/haskell/Data/HGit2/*.hs
 src/haskell/Main
 dist/
