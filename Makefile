@@ -10,5 +10,6 @@ default: $(CHSS)
 
 clean:
 	cabal clean
+	rm $(HSSRC)/*.chi $(HSSRC)/*.h $(HSSRC)/*.hs
 
 .PHONY: clean
