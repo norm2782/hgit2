@@ -51,6 +51,7 @@ Library
                        Data.HGit2.Errors, Data.HGit2.Git2, Data.HGit2.Index,
                        Data.HGit2.Object, Data.HGit2.Repository
   Build-Tools:         c2hs
-  CC-Options:          -U __BLOCKS__
+  CC-Options:          -U__BLOCKS__
   GHC-Options:         -Wall -fwarn-tabs
   Include-Dirs:        src/include
+  Build-Depends:       base >= 4 && < 5
