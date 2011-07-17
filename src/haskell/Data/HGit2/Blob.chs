@@ -30,6 +30,7 @@ newtype Blob = Blob CPtr
  */
 GIT_EXTERN(const void *) git_blob_rawcontent(git_blob *blob);
 -}
+
 -- TODO: Could the next two be made "pure"
 -- TODO: Figure out what this function should return...
 rawBlobContent :: Blob -> IO CPtr

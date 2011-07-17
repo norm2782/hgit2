@@ -49,7 +49,9 @@ Library
   HS-Source-Dirs:      src/haskell
   Exposed-Modules:     Data.HGit2.Blob, Data.HGit2.Commit, Data.HGit2.Config,
                        Data.HGit2.Errors, Data.HGit2.Git2, Data.HGit2.Index,
-                       Data.HGit2.Object, Data.HGit2.Repository
+                       Data.HGit2.Object, Data.HGit2.Repository,
+                       Data.HGit2.OID, Data.HGit2.Tree, Data.HGit2.Signature,
+                       Data.HGit2.Types, Data.HGit2.ODB
   Build-Tools:         c2hs
   CC-Options:          -U__BLOCKS__
   GHC-Options:         -Wall -fwarn-tabs
