@@ -4,6 +4,6 @@
 *.chi
 *.hi
 *.h
-src/Data/HGit2/*.hs
-src/Main
+src/haskell/Data/HGit2/*.hs
+src/haskell/Main
 dist/

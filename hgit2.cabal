@@ -12,15 +12,45 @@ Category:            Data
 Build-Type:          Simple
 Cabal-Version:       >= 1.6
 
+Extra-Source-Files:
+  src/include/git2/blob.h
+  src/include/git2/branch.h
+  src/include/git2/commit.h
+  src/include/git2/common.h
+  src/include/git2/config.h
+  src/include/git2/errors.h
+  src/include/git2/index.h
+  src/include/git2/net.h
+  src/include/git2/object.h
+  src/include/git2/odb.h
+  src/include/git2/odb_backend.h
+  src/include/git2/oid.h
+  src/include/git2/reflog.h
+  src/include/git2/refs.h
+  src/include/git2/refspec.h
+  src/include/git2/remote.h
+  src/include/git2/repository.h
+  src/include/git2/revwalk.h
+  src/include/git2/signature.h
+  src/include/git2/status.h
+  src/include/git2/tag.h
+  src/include/git2/thread-utils.h
+  src/include/git2/transport.h
+  src/include/git2/tree.h
+  src/include/git2/types.h
+  src/include/git2/zlib.h
+  src/include/git2.h
+
 Source-Repository head
   type:     git
   location: https://github.com/norm2782/hgit2.git
 
 Library
-  HS-Source-Dirs:      src
+  HS-Source-Dirs:      src/haskell
   Exposed-Modules:     Data.HGit2.Blob, Data.HGit2.Commit, Data.HGit2.Config,
                        Data.HGit2.Errors, Data.HGit2.Git2, Data.HGit2.Index,
                        Data.HGit2.Object, Data.HGit2.Repository
   Build-Tools:         c2hs
   CC-Options:          -U __BLOCKS__
   GHC-Options:         -Wall -fwarn-tabs
+  Include-Dirs:        src/include
