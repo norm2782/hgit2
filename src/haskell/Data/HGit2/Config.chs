@@ -6,38 +6,34 @@
 module Data.HGit2.Config where
 
 import Data.HGit2.Git2
+import Data.HGit2.Errors
+import Foreign
+import Foreign.C
 
 newtype Config = Config CPtr
 
+-- | Locate the path to the global configuration file
+--
+-- The user or global configuration file is usually located in
+-- `$HOME/.gitconfig`.
+--
+-- This method will try to guess the full path to that file, if the file
+-- exists. The returned path may be used on any `git_config` call to load the
+-- global configuration file.
+findGlobalConfig :: IO (Maybe String)
+findGlobalConfig = alloca $ \pth -> do
+  res <- {#call git_config_find_global#} pth
+  if res == 0
+    then fmap Just $ peekCString pth
+    else return Nothing
+
+-- | Open the global configuration file
+openGlobalConfig :: IO (Either GitError Config)
+openGlobalConfig = alloca $ \conf -> do
+  res <- {#call git_config_open_global#} conf
+  retEither res $ fmap (Right . Config) $ peek conf
+
 {-
-/**
- * Locate the path to the global configuration file
- *
- * The user or global configuration file is usually
- * located in `$HOME/.gitconfig`.
- *
- * This method will try to guess the full path to that
- * file, if the file exists. The returned path
- * may be used on any `git_config` call to load the
- * global configuration file.
- *
- * @param global_config_path Buffer of GIT_PATH_MAX length to store the path
- * @return GIT_SUCCESS if a global configuration file has been
- *	found. Its path will be stored in `buffer`.
- */
-GIT_EXTERN(int) git_config_find_global(char *global_config_path);
-
-/**
- * Open the global configuration file
- *
- * Utility wrapper that calls `git_config_find_global`
- * and opens the located file, if it exists.
- *
- * @param out Pointer to store the config instance
- * @return GIT_SUCCESS on success; error code otherwise
- */
-GIT_EXTERN(int) git_config_open_global(git_config **out);
-
 /**
  * Create a configuration file backend for ondisk files
  *
@@ -154,71 +150,49 @@ GIT_EXTERN(int) git_config_get_long(git_config *cfg, const char *name, long int 
  * @return GIT_SUCCESS on success; error code otherwise
  */
 GIT_EXTERN(int) git_config_get_bool(git_config *cfg, const char *name, int *out);
+-}
 
-/**
- * Get the value of a string config variable.
- *
- * The string is owned by the variable and should not be freed by the
- * user.
- *
- * @param cfg where to look for the variable
- * @param name the variable's name
- * @param out pointer to the variable's value
- * @return GIT_SUCCESS on success; error code otherwise
- */
-GIT_EXTERN(int) git_config_get_string(git_config *cfg, const char *name, const char **out);
+-- | Get the value of a string config variable.
+-- The string is owned by the variable and should not be freed by the user.
+configString :: Config -> String -> IO (Either GitError String)
+configString (Config c) vn = alloca $ \out -> do
+  vn' <- newCString vn
+  res <- {#call git_config_get_string#} c vn' out
+  retEither res $ fmap Right $ peekCString =<< peek out
 
-/**
- * Set the value of an integer config variable.
- *
- * @param cfg where to look for the variable
- * @param name the variable's name
- * @param value Integer value for the variable
- * @return GIT_SUCCESS on success; error code otherwise
- */
-GIT_EXTERN(int) git_config_set_int(git_config *cfg, const char *name, int value);
+-- | Set the value of an integer config variable.
+setConfigInt :: Config -> String -> Int -> IO (Maybe GitError)
+setConfigInt (Config c) vn val = do
+  str <- newCString vn
+  retMaybeRes =<< {#call git_config_set_int#} c str (fromIntegral val)
 
-/**
- * Set the value of a long integer config variable.
- *
- * @param cfg where to look for the variable
- * @param name the variable's name
- * @param value Long integer value for the variable
- * @return GIT_SUCCESS on success; error code otherwise
- */
-GIT_EXTERN(int) git_config_set_long(git_config *cfg, const char *name, long int value);
+-- | Set the value of a long integer config variable.
+setConfigInteger :: Config -> String -> Integer -> IO (Maybe GitError)
+setConfigInteger (Config c) vn val = do
+  str <- newCString vn
+  retMaybeRes =<< {#call git_config_set_long#} c str (fromIntegral val)
 
-/**
- * Set the value of a boolean config variable.
- *
- * @param cfg where to look for the variable
- * @param name the variable's name
- * @param value the value to store
- * @return GIT_SUCCESS on success; error code otherwise
- */
-GIT_EXTERN(int) git_config_set_bool(git_config *cfg, const char *name, int value);
+-- | Set the value of a boolean config variable.
+setConfigBool :: Config -> String -> Bool -> IO (Maybe GitError)
+setConfigBool (Config c) vn val = do
+  str <- newCString vn
+  retMaybeRes =<< {#call git_config_set_bool#} c str (fromBool val)
 
-/**
- * Set the value of a string config variable.
- *
- * A copy of the string is made and the user is free to use it
- * afterwards.
- *
- * @param cfg where to look for the variable
- * @param name the variable's name
- * @param value the string to store.
- * @return GIT_SUCCESS on success; error code otherwise
- */
-GIT_EXTERN(int) git_config_set_string(git_config *cfg, const char *name, const char *value);
+-- | Set the value of a string config variable.
+setConfigString :: Config -> String -> String -> IO (Maybe GitError)
+setConfigString (Config c) vn val = do
+  str <- newCString vn
+  vl' <- newCString val
+  retMaybeRes =<< {#call git_config_set_string#} c str vl'
 
-/**
- * Delete a config variable
- *
- * @param cfg the configuration
- * @param name the variable to delete
- */
-GIT_EXTERN(int) git_config_delete(git_config *cfg, const char *name);
+-- | Delete a config variable
+delConfig :: Config -> String -> IO (Maybe GitError)
+delConfig (Config c) vn = do
+  str <- newCString vn
+  retMaybeRes =<< {#call git_config_delete#} c str
 
+-- TODO: foreachConfig :: Config ->
+{-
 /**
  * Perform an operation on each config variable.
  *

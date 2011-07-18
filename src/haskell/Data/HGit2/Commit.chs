@@ -19,46 +19,56 @@ import Foreign.C.Types
 
 newtype Commit = Commit CPtr
 
+instance CWrapper Commit where
+  unwrap (Commit c) = c
+
+flipCall :: CWrapper a => (a1 -> IO c) -> (CPtr -> IO a1) -> a -> c
+flipCall f = flip usCall (f =<<)
+
+usCall :: CWrapper a => (CPtr -> b) -> (b -> IO c) -> a -> c
+usCall f g = unsafePerformIO . g . f . unwrap
+
+oidCall :: (CPtr -> IO CPtr) -> Commit -> OID
+oidCall = flipCall (return . OID)
+
+strCall :: (CPtr -> IO CString) -> Commit -> String
+strCall = flipCall peekCString
+
+sigCall :: (CPtr -> IO CPtr) -> Commit -> Signature
+sigCall = flipCall (return . Signature)
+
 commitId :: Commit -> OID
-commitId (Commit c) = unsafePerformIO $
-  return . OID =<< {#call unsafe git_commit_id#} c
+commitId = oidCall {#call unsafe git_commit_id#}
+
+treeOid :: Commit -> OID
+treeOid = oidCall {#call unsafe git_commit_tree_oid#}
 
 shortCommitMsg :: Commit -> String
-shortCommitMsg (Commit c) = unsafePerformIO $
-  peekCString =<< {#call unsafe git_commit_message_short#} c
+shortCommitMsg = strCall {#call unsafe git_commit_message_short#}
 
 commitMsg :: Commit -> String
-commitMsg (Commit c) = unsafePerformIO $
-  peekCString =<< {#call unsafe git_commit_message#} c
+commitMsg = strCall {#call unsafe git_commit_message#}
 
 commitTime :: Commit -> TimeT
-commitTime (Commit c) = unsafePerformIO $
-  return =<< {#call unsafe git_commit_time#} c
+commitTime = usCall {#call unsafe git_commit_time#} (return =<<)
 
 timeOffset :: Commit -> Int
-timeOffset (Commit c) = unsafePerformIO $
-  return . fromIntegral =<< {#call unsafe git_commit_time_offset#} c
+timeOffset = usCall {#call unsafe git_commit_time_offset#} (return . fromIntegral =<<)
 
 committer :: Commit -> Signature
-committer (Commit c) = unsafePerformIO $
-  return . Signature =<< {#call unsafe git_commit_committer#} c
+committer = sigCall {#call unsafe git_commit_committer#}
 
 author :: Commit -> Signature
-author (Commit c) = unsafePerformIO $
-  return . Signature =<< {#call unsafe git_commit_author#} c
+author = sigCall {#call unsafe git_commit_author#}
 
 tree :: Commit -> IO (Either GitError Tree)
 tree (Commit c) = alloca $ \tr -> do
   res <- {#call git_commit_tree#} tr c
   retEither res $ fmap (Right . Tree) $ peek tr
 
-treeOid :: Commit -> OID
-treeOid (Commit c) = unsafePerformIO $
-  return . OID =<< {#call unsafe git_commit_tree_oid#} c
-
 parentCount :: Commit -> IO Int
 parentCount (Commit c) =
-  return . fromIntegral =<< {#call unsafe git_commit_parentcount#} c
+  return . fromIntegral =<< {#call git_commit_parentcount#} c
 
 parent :: Commit -> Int -> IO (Either GitError Commit)
 parent (Commit c) n = alloca $ \prnt -> do

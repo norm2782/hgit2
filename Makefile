@@ -12,6 +12,6 @@ dist/setup-config: hgit2.cabal
 
 clean:
 	cabal clean
-	rm $(HSSRC)/*.chi $(HSSRC)/*.h $(HSSRC)/*.hs
+	rm $(HSSRC)/*.chi $(HSSRC)/*.h $(HSSRC)/*.hs $(HSSRC)/*.hi $(HSSRC)/*.o
 
 .PHONY: clean

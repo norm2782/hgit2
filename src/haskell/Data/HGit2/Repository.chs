@@ -15,9 +15,12 @@ import Foreign.C.Types
 
 newtype Repository = Repository CPtr
 
+instance CWrapper Repository where
+  unwrap (Repository r) = r
+
 {#enum git_repository_pathid as RepositoryPathID {underscoreToCase}#}
 
-repoIs :: Ptr2Int -> Repository -> IO Bool
+repoIs :: (CPtr -> IO CInt) -> Repository -> IO Bool
 repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
 
 openRepo :: String -> IO (Either GitError Repository)
@@ -54,7 +57,7 @@ discover startPath acrossFs ceilingDirs = alloca $ \pth -> do
   retEither res $ fmap Right $ peekCString pth
 
 database :: Repository -> IO ODB
-database (Repository r) = return . ODB =<< {#call git_repository_database#} r
+database = (return . ODB =<<) . {#call git_repository_database#} . unwrap
 
 index :: Repository -> IO (Either GitError Index)
 index (Repository r) = alloca $ \idx -> do
@@ -62,7 +65,7 @@ index (Repository r) = alloca $ \idx -> do
   retEither res $ fmap (Right . Index) $ peek idx
 
 free :: Repository -> IO ()
-free (Repository r) = {#call git_repository_free#} r
+free = {#call git_repository_free#} . unwrap
 
 init :: String -> Bool -> IO (Either GitError Repository)
 init pth bare = alloca $ \pprepo -> do

@@ -16,6 +16,9 @@ import Foreign.C.Types
 
 newtype Blob = Blob CPtr
 
+instance CWrapper Blob where
+  unwrap (Blob b) = b
+
 {-
 /**
  * Get a read-only buffer with the raw content of a blob.
@@ -34,10 +37,10 @@ GIT_EXTERN(const void *) git_blob_rawcontent(git_blob *blob);
 -- TODO: Could the next two be made "pure"
 -- TODO: Figure out what this function should return...
 rawBlobContent :: Blob -> IO CPtr
-rawBlobContent (Blob b) = {#call git_blob_rawcontent#} b
+rawBlobContent = {#call git_blob_rawcontent#} . unwrap
 
 rawBlobSize :: Blob -> IO Int
-rawBlobSize (Blob b) = return . fromIntegral =<< {#call git_blob_rawsize#} b
+rawBlobSize = (return . fromIntegral =<<) . {#call git_blob_rawsize#} . unwrap
 
 blobFromFile :: OID -> Repository -> String -> IO (Maybe GitError)
 blobFromFile (OID obj) (Repository repo) pth = do
