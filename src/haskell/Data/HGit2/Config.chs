@@ -162,34 +162,35 @@ configString (Config c) vn = alloca $ \out -> do
 
 -- | Set the value of an integer config variable.
 setConfigInt :: Config -> String -> Int -> IO (Maybe GitError)
-setConfigInt (Config c) vn val = do
-  str <- newCString vn
-  retMaybe =<< {#call git_config_set_int#} c str (fromIntegral val)
+setConfigInt conf vn val =
+  mConfig {#call git_config_set_int#} conf vn (fromIntegral val)
 
 -- | Set the value of a long integer config variable.
 setConfigInteger :: Config -> String -> Integer -> IO (Maybe GitError)
-setConfigInteger (Config c) vn val = do
-  str <- newCString vn
-  retMaybe =<< {#call git_config_set_long#} c str (fromIntegral val)
+setConfigInteger conf vn val =
+  mConfig {#call git_config_set_long#} conf vn (fromIntegral val)
 
 -- | Set the value of a boolean config variable.
 setConfigBool :: Config -> String -> Bool -> IO (Maybe GitError)
-setConfigBool (Config c) vn val = do
-  str <- newCString vn
-  retMaybe =<< {#call git_config_set_bool#} c str (fromBool val)
+setConfigBool conf vn val =
+  mConfig {#call git_config_set_bool#} conf vn (fromBool val)
 
 -- | Set the value of a string config variable.
 setConfigString :: Config -> String -> String -> IO (Maybe GitError)
-setConfigString (Config c) vn val = do
-  str <- newCString vn
-  vl' <- newCString val
-  retMaybe =<< {#call git_config_set_string#} c str vl'
+setConfigString conf vn val =
+  mConfig {#call git_config_set_string#} conf vn =<< newCString val
 
 -- | Delete a config variable
 delConfig :: Config -> String -> IO (Maybe GitError)
 delConfig (Config c) vn = do
   str <- newCString vn
   retMaybe =<< {#call git_config_delete#} c str
+
+mConfig :: (CPtr -> CString -> t -> IO CInt) -> Config -> String -> t
+        -> IO (Maybe GitError)
+mConfig call (Config c) vn val = do
+  str <- newCString vn
+  retMaybe =<< call c str val
 
 -- TODO: foreachConfig :: Config ->
 {-
