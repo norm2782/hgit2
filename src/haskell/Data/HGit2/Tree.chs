@@ -68,7 +68,7 @@ entryToObj (Repository r) (TreeEntry t) = alloca $ \obj -> do
 -- Write a tree to the ODB from the index file
 createFromIndex :: OID -> Index -> IO (Maybe GitError)
 createFromIndex (OID o) (Index i) =
-  retMaybeRes =<< {#call git_tree_create_fromindex#} o i
+  retMaybe =<< {#call git_tree_create_fromindex#} o i
 
 -- | Create a new tree builder
 createTreeBuilder :: Maybe Tree -> IO (Either GitError TreeBuilder)
@@ -108,7 +108,7 @@ insertTreeBuilder (TreeBuilder b) fn (OID o) as = alloca $ \entry -> do
 removeTreeBuilder :: TreeBuilder -> String -> IO (Maybe GitError)
 removeTreeBuilder (TreeBuilder t) fn = do
   str <- newCString fn
-  retMaybeRes =<< {#call git_treebuilder_remove#} t str
+  retMaybe =<< {#call git_treebuilder_remove#} t str
 
 {-
 /**
@@ -132,5 +132,5 @@ TODO: How to handle callbacks?
 -- | Write the contents of the tree builder as a tree object
 writeTreeBuilder :: OID -> Repository -> TreeBuilder -> IO (Maybe GitError)
 writeTreeBuilder (OID o) (Repository r) (TreeBuilder t) =
-  retMaybeRes =<< {#call git_treebuilder_write#} o r t
+  retMaybe =<< {#call git_treebuilder_write#} o r t
 

@@ -22,20 +22,14 @@ newtype Commit = Commit CPtr
 instance CWrapper Commit where
   unwrap (Commit c) = c
 
-flipCall :: CWrapper a => (a1 -> IO c) -> (CPtr -> IO a1) -> a -> c
-flipCall f = flip usCall (f =<<)
-
-usCall :: CWrapper a => (CPtr -> b) -> (b -> IO c) -> a -> c
-usCall f g = unsafePerformIO . g . f . unwrap
-
 oidCall :: (CPtr -> IO CPtr) -> Commit -> OID
-oidCall = flipCall (return . OID)
+oidCall = flipUSCall (return . OID)
 
 strCall :: (CPtr -> IO CString) -> Commit -> String
-strCall = flipCall peekCString
+strCall = flipUSCall peekCString
 
 sigCall :: (CPtr -> IO CPtr) -> Commit -> Signature
-sigCall = flipCall (return . Signature)
+sigCall = flipUSCall (return . Signature)
 
 commitId :: Commit -> OID
 commitId = oidCall {#call unsafe git_commit_id#}
@@ -67,8 +61,7 @@ tree (Commit c) = alloca $ \tr -> do
   retEither res $ fmap (Right . Tree) $ peek tr
 
 parentCount :: Commit -> IO Int
-parentCount (Commit c) =
-  return . fromIntegral =<< {#call git_commit_parentcount#} c
+parentCount = wrapToMNum {#call git_commit_parentcount#}
 
 parent :: Commit -> Int -> IO (Either GitError Commit)
 parent (Commit c) n = alloca $ \prnt -> do
@@ -91,5 +84,5 @@ createCommit (OID o) (Repository r) mref (Signature ausig)
               Just x  -> newCString x
   msgStr <- newCString msg
   carr   <- newArray [c | Commit c <- ps]
-  retMaybeRes =<< {#call git_commit_create#} o r updRef ausig comsig msgStr t
+  retMaybe =<< {#call git_commit_create#} o r updRef ausig comsig msgStr t
                                              (fromIntegral $ length ps) carr

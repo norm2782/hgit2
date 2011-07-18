@@ -40,15 +40,15 @@ rawBlobContent :: Blob -> IO CPtr
 rawBlobContent = {#call git_blob_rawcontent#} . unwrap
 
 rawBlobSize :: Blob -> IO Int
-rawBlobSize = (return . fromIntegral =<<) . {#call git_blob_rawsize#} . unwrap
+rawBlobSize = wrapToMNum {#call git_blob_rawsize#}
 
 blobFromFile :: OID -> Repository -> String -> IO (Maybe GitError)
 blobFromFile (OID obj) (Repository repo) pth = do
   pathStr  <- newCString pth
-  retMaybeRes =<< {#call git_blob_create_fromfile #} obj repo pathStr
+  retMaybe =<< {#call git_blob_create_fromfile #} obj repo pathStr
 
 -- TODO: CPtr here?
 blobFromBuffer :: OID -> Repository -> CPtr -> IO (Maybe GitError)
 blobFromBuffer (OID o) (Repository repo) buf =
-  retMaybeRes =<< {#call git_blob_create_frombuffer#} o repo buf
+  retMaybe =<< {#call git_blob_create_frombuffer#} o repo buf
                                                     (fromIntegral $ sizeOf buf)

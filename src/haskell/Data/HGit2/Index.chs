@@ -62,12 +62,12 @@ freeIndex (Index idx) = {#call git_index_free#} idx
 -- | Update the contents of an existing index object in memory by reading from
 -- the hard disk.
 readIndex :: Index -> IO (Maybe GitError)
-readIndex (Index idx) = retMaybeRes =<< {#call git_index_read#} idx
+readIndex (Index idx) = retMaybe =<< {#call git_index_read#} idx
 
 -- | Write an existing index object from memory back to disk using an atomic
 -- file lock.
 writeIndex :: Index -> IO (Maybe GitError)
-writeIndex (Index idx) = retMaybeRes =<< {#call git_index_write#} idx
+writeIndex (Index idx) = retMaybe =<< {#call git_index_write#} idx
 
 -- | Find the first index of any entries which point to given path in the Git
 -- index.
@@ -87,28 +87,28 @@ uniqIndex (Index idx) = {#call git_index_uniq#} idx
 addIndex :: Index -> String -> Int -> IO (Maybe GitError)
 addIndex (Index idx) path stage = do
   pth <- newCString path
-  retMaybeRes =<< {#call git_index_add#} idx pth (fromIntegral stage)
+  retMaybe =<< {#call git_index_add#} idx pth (fromIntegral stage)
 
 -- | Add or update an index entry from an in-memory struct
 addIndex2 :: Index -> IndexEntry -> IO (Maybe GitError)
 addIndex2 (Index idx) (IndexEntry ie) =
-  retMaybeRes =<< {#call git_index_add2#} idx ie
+  retMaybe =<< {#call git_index_add2#} idx ie
 
 -- | Add (append) an index entry from a file in disk
 appendIndex :: Index -> String -> Int -> IO (Maybe GitError)
 appendIndex (Index idx) path stage = do
   pth <- newCString path
-  retMaybeRes =<< {#call git_index_append#} idx pth (fromIntegral stage)
+  retMaybe =<< {#call git_index_append#} idx pth (fromIntegral stage)
 
 -- | Add (append) an index entry from an in-memory struct
 appendIndex2 :: Index -> IndexEntry -> IO (Maybe GitError)
 appendIndex2 (Index idx) (IndexEntry ie) =
-  retMaybeRes =<< {#call git_index_append2#} idx ie
+  retMaybe =<< {#call git_index_append2#} idx ie
 
 -- | Remove an entry from the index
 remove :: Index -> Int -> IO (Maybe GitError)
 remove (Index idx) n =
-  retMaybeRes =<< {#call git_index_remove#} idx (fromIntegral n)
+  retMaybe =<< {#call git_index_remove#} idx (fromIntegral n)
 
 -- | Get a pointer to one of the entries in the index
 getIndex :: Index -> Int -> IO (Maybe IndexEntry)
