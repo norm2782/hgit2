@@ -8,7 +8,6 @@ refs.h
 refspec.h
 remote.h
 revwalk.h
-signature.h
 status.h
 tag.h
 transport.h
