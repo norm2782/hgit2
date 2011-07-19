@@ -19,6 +19,15 @@ newtype Tree        = Tree CPtr
 newtype TreeEntry   = TreeEntry CPtr
 newtype TreeBuilder = TreeBuilder CPtr
 
+instance CWrapper Tree where
+  unwrap (Tree t) = t
+
+instance CWrapper TreeEntry where
+  unwrap (TreeEntry te) = te
+
+instance CWrapper TreeBuilder where
+  unwrap (TreeBuilder tb) = tb
+
 ioIntRet :: Integral a => IO a -> IO Int
 ioIntRet f = return . fromIntegral =<< f
 
@@ -89,12 +98,8 @@ freeTreeBuilder (TreeBuilder t) = {#call git_treebuilder_free#} t
 
 -- Get an entry from the builder from its filename
 getTreeBuilder :: TreeBuilder -> String -> IO (Maybe TreeEntry)
-getTreeBuilder (TreeBuilder b) fn = do
-  fn' <- newCString fn
-  res <- {#call git_treebuilder_get#} b fn'
-  return $ if res == nullPtr
-             then Nothing
-             else Just $ TreeEntry res
+getTreeBuilder (TreeBuilder b) fn =
+  retRes TreeEntry =<< {#call git_treebuilder_get#} b =<< newCString fn
 
 -- | Add or update an entry to the builder
 insertTreeBuilder :: TreeBuilder -> String -> OID -> Int
@@ -133,4 +138,3 @@ TODO: How to handle callbacks?
 writeTreeBuilder :: OID -> Repository -> TreeBuilder -> IO (Maybe GitError)
 writeTreeBuilder (OID o) (Repository r) (TreeBuilder t) =
   retMaybe =<< {#call git_treebuilder_write#} o r t
-

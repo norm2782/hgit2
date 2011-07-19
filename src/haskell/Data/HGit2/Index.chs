@@ -17,6 +17,15 @@ newtype Index      = Index CPtr
 newtype IndexEntry = IndexEntry CPtr
 newtype IndexEntryUnMerged = IndexEntryUnMerged CPtr
 
+instance CWrapper Index where
+  unwrap (Index i) = i
+
+instance CWrapper IndexEntry where
+  unwrap (IndexEntry ie) = ie
+
+instance CWrapper IndexEntryUnMerged where
+  unwrap (IndexEntryUnMerged ieu) = ieu
+
 {#enum define IdxEntry { GIT_IDXENTRY_NAMEMASK as NameMask
                        , GIT_IDXENTRY_STAGEMASK as StageMask
                        , GIT_IDXENTRY_EXTENDED as ExtendedOrSkipWorkTree
@@ -75,9 +84,9 @@ findIndex :: Index -> String -> IO (Maybe Int)
 findIndex (Index idx) path = do
   pth <- newCString path
   res <- {#call git_index_find#} idx pth
-  if res >= 0
-    then return . Just $ fromIntegral res
-    else return Nothing
+  return $ if res >= 0
+             then Just $ fromIntegral res
+             else Nothing
 
 -- | Remove all entries with equal path except last added
 uniqIndex :: Index -> IO ()
@@ -112,11 +121,8 @@ remove (Index idx) n =
 
 -- | Get a pointer to one of the entries in the index
 getIndex :: Index -> Int -> IO (Maybe IndexEntry)
-getIndex (Index idx) n = do
-  res <- {#call git_index_get#} idx (fromIntegral n)
-  return $ if res == nullPtr
-             then Nothing
-             else Just $ IndexEntry res
+getIndex (Index idx) n =
+  retRes IndexEntry =<< {#call git_index_get#} idx (fromIntegral n)
 
 -- | Get the count of entries currently in the index
 entryCount :: Index -> IO Int
@@ -128,22 +134,18 @@ entryCountUnMerged :: Index -> IO Int
 entryCountUnMerged (Index idx) =
   return . fromIntegral =<< {#call git_index_entrycount_unmerged#} idx
 
+retIEU :: CPtr -> IO (Maybe IndexEntryUnMerged)
+retIEU = retRes IndexEntryUnMerged
+
 -- | Get an unmerged entry from the index.
 unmergedByPath :: Index -> String -> IO (Maybe IndexEntryUnMerged)
-unmergedByPath (Index idx) path = do
-  pth <- newCString path
-  res <- {#call git_index_get_unmerged_bypath#} idx pth
-  return $ if res == nullPtr
-             then Nothing
-             else Just $ IndexEntryUnMerged res
+unmergedByPath (Index idx) path =
+  retIEU =<< {#call git_index_get_unmerged_bypath#} idx =<< newCString path
 
 -- | Get an unmerged entry from the index.
 unmergedByIndex :: Index -> Int -> IO (Maybe IndexEntryUnMerged)
-unmergedByIndex (Index idx) n = do
-  res <- {#call git_index_get_unmerged_byindex#} idx (fromIntegral n)
-  return $ if res == nullPtr
-             then Nothing
-             else Just $ IndexEntryUnMerged res
+unmergedByIndex (Index idx) n =
+  retIEU =<< {#call git_index_get_unmerged_byindex#} idx (fromIntegral n)
 
 -- | Return the stage number from a git index entry
 entryStage :: IndexEntry -> IO Int

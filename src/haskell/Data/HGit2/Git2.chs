@@ -17,3 +17,7 @@ flipUSCall f = flip usCall (f =<<)
 usCall :: CWrapper a => (CPtr -> b) -> (b -> IO c) -> a -> c
 usCall f g = unsafePerformIO . g . f . unwrap
 
+retRes :: CWrapper a => (CPtr -> a) -> CPtr -> IO (Maybe a)
+retRes w = return . retRes'
+  where retRes' res | res == nullPtr = Nothing
+                    | otherwise      = Just $ w res

@@ -21,7 +21,7 @@ newSignature :: String -> String -> TimeT -> Int -> IO (Maybe Signature)
 newSignature nm em t off = do
   nm' <- newCString nm
   em' <- newCString em
-  retRes =<< {#call git_signature_new#} nm' em' t (fromIntegral off)
+  retSig =<< {#call git_signature_new#} nm' em' t (fromIntegral off)
 
 -- | Create a new action signature with a timestamp of 'now'. The signature
 -- must be freed manually or using freeSignature
@@ -29,16 +29,14 @@ nowSignature :: String -> String -> IO (Maybe Signature)
 nowSignature nm em = do
   nm' <- newCString nm
   em' <- newCString em
-  retRes =<< {#call git_signature_now#} nm' em'
+  retSig =<< {#call git_signature_now#} nm' em'
 
-retRes :: CPtr -> IO (Maybe Signature)
-retRes = return . retRes'
-  where retRes' res | res == nullPtr = Nothing
-                    | otherwise      = Just $ Signature res
+retSig :: CPtr -> IO (Maybe Signature)
+retSig = retRes Signature
 
 -- | Create a copy of an existing signature.
 dupSignature :: Signature -> IO (Maybe Signature)
-dupSignature = (retRes =<<) . {#call git_signature_dup#} . unwrap
+dupSignature = (retSig =<<) . {#call git_signature_dup#} . unwrap
 
 -- | Free an existing signature
 freeSignature :: Signature -> IO ()
