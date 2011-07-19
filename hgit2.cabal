@@ -48,7 +48,7 @@ Source-Repository head
 Executable hgit2
   HS-Source-Dirs:      src/haskell
   Main-Is:             Main.hs
-  Build-Depends:       base >= 4 && < 5
+  Build-Depends:       base >= 4 && < 5, hgit2
   Extra-Libraries:     git2
 
 Library
@@ -57,7 +57,7 @@ Library
                        Data.HGit2.Errors, Data.HGit2.Git2, Data.HGit2.Index,
                        Data.HGit2.Object, Data.HGit2.Repository,
                        Data.HGit2.OID, Data.HGit2.Tree, Data.HGit2.Signature,
-                       Data.HGit2.Types, Data.HGit2.ODB
+                       Data.HGit2.Types, Data.HGit2.ODB, Data.HGit2.Status
   Build-Tools:         c2hs
   CC-Options:          -U__BLOCKS__
   GHC-Options:         -Wall -fwarn-tabs
