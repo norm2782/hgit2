@@ -63,3 +63,4 @@ Library
   GHC-Options:         -Wall -fwarn-tabs
   Include-Dirs:        src/include
   Build-Depends:       base >= 4 && < 5
+  Extra-Libraries:     git2
