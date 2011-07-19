@@ -42,9 +42,8 @@ entryCount (Tree t) = ioIntRet $ {#call git_tree_entrycount#} t
 
 -- | Lookup a tree entry by its filename
 entryByName :: Tree -> String -> IO TreeEntry
-entryByName (Tree t) fn = do
-  fn' <- newCString fn
-  fmap TreeEntry $ {#call git_tree_entry_byname#} t fn'
+entryByName (Tree t) fn =
+  fmap TreeEntry $ {#call git_tree_entry_byname#} t =<< newCString fn
 
 -- | Lookup a tree entry by its position in the tree
 entryByIndex :: Tree -> Int -> IO TreeEntry
@@ -111,9 +110,8 @@ insertTreeBuilder (TreeBuilder b) fn (OID o) as = alloca $ \entry -> do
 
 -- | Remove an entry from the builder by its filename
 removeTreeBuilder :: TreeBuilder -> String -> IO (Maybe GitError)
-removeTreeBuilder (TreeBuilder t) fn = do
-  str <- newCString fn
-  retMaybe =<< {#call git_treebuilder_remove#} t str
+removeTreeBuilder (TreeBuilder t) fn =
+  retMaybe =<< {#call git_treebuilder_remove#} t =<< newCString fn
 
 {-
 /**
