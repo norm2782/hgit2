@@ -17,10 +17,9 @@ main = do
   r <- openRepo "/Users/norm2782/src/hgit2/.git"
   putStrLn "Opened repo"
   case r of
-    (Left err)   -> putStrLn $ "Error: " ++ show err
-    (Right repo) -> do putStr "Chechking whether repo is empty... "
-                       ie <- isEmpty repo
-                       putStrLn $ show ie
-                       putStr "Repository path... "
-                       pt <- path repo GitRepoPath
-                       putStrLn pt
+    (Left err)   -> putStrLn $ "Error opening repo: " ++ show err
+    (Right repo) -> do msg "Checking whether repo is empty... " (isEmpty repo)
+                       msg "Repository path... " (path repo GitRepoPath)
+
+
+msg str rhs = putStrLn . (str ++) . show =<< rhs
