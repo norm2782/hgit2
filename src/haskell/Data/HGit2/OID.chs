@@ -31,6 +31,7 @@ instance CWrapper OID where
  * @return GIT_SUCCESS if valid; GIT_ENOTOID on failure.
  */
 GIT_EXTERN(int) git_oid_fromstr(git_oid *out, const char *str);
+TODO
 -}
 {- oidFromStr :: String -> IO (Either GitError OID)-}
 {- oidFromStr str = alloca $ \oid -> do-}
@@ -59,33 +60,22 @@ GIT_EXTERN(int) git_oid_fromstrn(git_oid *out, const char *str, size_t length);
  * @param raw the raw input bytes to be copied.
  */
 GIT_EXTERN(void) git_oid_fromraw(git_oid *out, const unsigned char *raw);
+-}
 
-/**
- * Format a git_oid into a hex string.
- *
- * @param str output hex string; must be pointing at the start of
- *        the hex sequence and have at least the number of bytes
- *        needed for an oid encoded in hex (40 bytes).  Only the
- *        oid digits are written; a '\\0' terminator must be added
- *        by the caller if it is required.
- * @param oid oid structure to format.
- */
-GIT_EXTERN(void) git_oid_fmt(char *str, const git_oid *oid);
+-- | Format a git_oid into a hex string.
+fmtOID :: OID -> IO String
+fmtOID (OID o) = alloca $ \out -> do
+  {#call git_oid_fmt#} out o
+  peekCString out
 
-/**
- * Format a git_oid into a loose-object path string.
- *
- * The resulting string is "aa/...", where "aa" is the first two
- * hex digitis of the oid and "..." is the remaining 38 digits.
- *
- * @param str output hex string; must be pointing at the start of
- *        the hex sequence and have at least the number of bytes
- *        needed for an oid encoded in hex (41 bytes).  Only the
- *        oid digits are written; a '\\0' terminator must be added
- *        by the caller if it is required.
- * @param oid oid structure to format.
- */
-GIT_EXTERN(void) git_oid_pathfmt(char *str, const git_oid *oid);
+-- | Format a git_oid into a loose-object path string.
+--
+-- The resulting string is "aa/...", where "aa" is the first two hex digitis of
+-- the oid and "..." is the remaining 38 digits.
+pathFmt :: OID -> IO String
+pathFmt (OID o) = alloca $ \out -> do
+  {#call git_oid_pathfmt#} out o
+  peekCString out
 
 -- | Format an OID into a newly allocated String.
 formatOid :: OID -> IO (Maybe String)
@@ -94,7 +84,7 @@ formatOid (OID o) = do
   if res == nullPtr
     then return Nothing
     else fmap Just $ peekCString res
--}
+
 {-
 /**
  * Format a git_oid into a buffer as a hex format c-string.
@@ -129,16 +119,11 @@ GIT_EXTERN(void) git_oid_cpy(git_oid *out, const git_oid *src);
  * @return <0, 0, >0 if a < b, a == b, a > b.
  */
 GIT_EXTERN(int) git_oid_cmp(const git_oid *a, const git_oid *b);
-
-/**
- * Compare the first 'len' hexadecimal characters (packets of 4 bits)
- * of two oid structures.
- *
- * @param a first oid structure.
- * @param b second oid structure.
- * @param len the number of hex chars to compare
- * @return 0 in case of a match
- */
-GIT_EXTERN(int) git_oid_ncmp(const git_oid *a, const git_oid *b, unsigned int len);
-
 -}
+
+-- | Compare the first 'len' hexadecimal characters (packets of 4 bits) of two
+-- oid structures.
+ncmp :: OID -> OID -> Int -> Bool
+ncmp (OID a) (OID b) n = unsafePerformIO $ do
+  res <- {#call unsafe git_oid_ncmp#} a b (fromIntegral n)
+  return $ res == 0
