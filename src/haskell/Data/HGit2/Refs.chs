@@ -1,6 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE StandaloneDeriving #-}
 
 #include <git2/refs.h>
 

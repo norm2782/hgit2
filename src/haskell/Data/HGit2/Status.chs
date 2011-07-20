@@ -5,11 +5,9 @@
 
 module Data.HGit2.Status where
 
-import Data.Bits
 import Data.HGit2.Git2
 import Data.HGit2.Repository
 import Data.HGit2.Errors
-import Data.Maybe
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types

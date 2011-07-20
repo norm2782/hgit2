@@ -64,5 +64,5 @@ callRetNum :: (CWrapper a, Num b, Monad m, Integral c) => (CPtr -> m c) -> a
            -> m b
 callRetNum call = retNum . call . unwrap
 
-callRetMaybe :: CWrapper a => (CPtr -> IO CInt) -> a -> IO (Maybe GitError)
+callRetMaybe :: CWrapper a => (CPtr -> IO CInt) -> a -> IOCanFail
 callRetMaybe call = (retMaybe =<<) . call . unwrap

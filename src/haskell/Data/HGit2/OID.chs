@@ -6,7 +6,6 @@
 module Data.HGit2.OID where
 
 import Data.HGit2.Git2
-import Data.HGit2.Errors
 import Foreign
 import Foreign.C
 

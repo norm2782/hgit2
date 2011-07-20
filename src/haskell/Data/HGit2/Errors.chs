@@ -9,7 +9,6 @@ module Data.HGit2.Errors where
 import Data.Maybe()
 import Foreign
 import Foreign.C
-import Foreign.C.String
 
 {#enum git_error as GitError {underscoreToCase}#}
 

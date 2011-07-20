@@ -6,12 +6,13 @@
 module Data.HGit2.ODBBackend where
 
 import Data.HGit2.Git2
-import Data.HGit2.Types
-import Data.HGit2.OID
 import Foreign
 import Foreign.C
 
 newtype ODBBackend = ODBBackend CPtr
+
+instance CWrapper ODBBackend where
+  unwrap (ODBBackend o) = o
 
 {#enum git_odb_streammode as ODBStreamMode {underscoreToCase}#}
 

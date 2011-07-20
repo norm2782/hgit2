@@ -22,9 +22,6 @@ instance CWrapper ODB where
 instance CWrapper ODBObj where
   unwrap (ODBObj o) = o
 
-instance CWrapper ODBBackend where
-  unwrap (ODBBackend o) = o
-
 -- | Create a new object database with no backends.
 --
 -- Before the ODB can be used for read/writing, a custom database backend must
