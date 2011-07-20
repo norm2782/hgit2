@@ -57,7 +57,8 @@ Library
                        Data.HGit2.Object, Data.HGit2.Repository,
                        Data.HGit2.OID, Data.HGit2.Tree, Data.HGit2.Signature,
                        Data.HGit2.Types, Data.HGit2.ODB, Data.HGit2.Status,
-                       Data.HGit2.ODBBackend, Data.HGit2.Reflog
+                       Data.HGit2.ODBBackend, Data.HGit2.Reflog,
+                       Data.HGit2.Refs
   Build-Tools:         c2hs
   CC-Options:          -U__BLOCKS__
   GHC-Options:         -Wall -fwarn-tabs

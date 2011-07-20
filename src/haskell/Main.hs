@@ -12,6 +12,7 @@ import Data.HGit2.Object
 import Data.HGit2.OID
 import Data.HGit2.ODB
 import Data.HGit2.ODBBackend
+import Data.HGit2.Refs
 import Data.HGit2.Repository
 
 main :: IO ()

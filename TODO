@@ -1,6 +1,5 @@
 odb.h
 oid.h
-reflog.h
 refs.h
 refspec.h
 remote.h
