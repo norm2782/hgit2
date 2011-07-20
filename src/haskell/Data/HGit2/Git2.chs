@@ -11,7 +11,7 @@ wrapToMNum :: (CWrapper a, Num b, Monad m, Integral c) => (CPtr -> m c) -> a
            -> m b
 wrapToMNum f = (return . fromIntegral =<<) . f . unwrap
 
-flipUSCall :: CWrapper a => (a1 -> IO c) -> (CPtr -> IO a1) -> a -> c
+flipUSCall :: CWrapper a => (b -> IO c) -> (CPtr -> IO b) -> a -> c
 flipUSCall f = flip usCall (f =<<)
 
 usCall :: CWrapper a => (CPtr -> b) -> (b -> IO c) -> a -> c

@@ -1,4 +1,3 @@
-config.h
 object.h
 odb.h
 odb_backend.h
