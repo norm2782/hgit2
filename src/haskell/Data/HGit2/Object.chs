@@ -42,7 +42,7 @@ oid (GitObj go) = unsafePerformIO $
 
 -- | Get the object type of an object
 objTy :: GitObj -> OType
-objTy = unsafePerformIO . (return . toEnum . fromIntegral =<<) .
+objTy = unsafePerformIO . retEnum .
   {#call unsafe git_object_type#} . unwrap
 
 -- | Get the repository that owns this object
@@ -69,7 +69,6 @@ objOwner = unsafePerformIO . (return . Repository =<<) .
 closeObj :: GitObj -> IO ()
 closeObj = {#call git_object_close#} . unwrap
 
-
 -- | Convert an object type to it's string representation.
 oTypeToString :: OType -> IO String
 oTypeToString oty =
@@ -77,8 +76,7 @@ oTypeToString oty =
 
 -- | Convert a string object type representation to it's git_otype.
 strToOType :: String -> IO OType
-strToOType str = return . toEnum . fromIntegral =<<
-  {#call git_object_string2type#} =<< newCString str
+strToOType = (retEnum . {#call git_object_string2type#} =<<) . newCString
 
 -- | Determine if the given git_otype is a valid loose object type.
 isLoose :: OType -> Bool
@@ -88,6 +86,5 @@ isLoose oty = unsafePerformIO $ return . toBool =<<
 -- | Get the size in bytes for the structure which acts as an in-memory
 -- representation of any given object type.
 objSize :: OType -> IO Integer
-objSize oty = return . fromIntegral =<< {#call git_object__size#}
-  (fromIntegral $ fromEnum oty)
+objSize = retNum . {#call git_object__size#} . (fromIntegral . fromEnum)
 

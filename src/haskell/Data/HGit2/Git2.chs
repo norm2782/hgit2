@@ -20,7 +20,7 @@ instance CWrapper RawData where
 
 wrapToMNum :: (CWrapper a, Num b, Monad m, Integral c) => (CPtr -> m c) -> a
            -> m b
-wrapToMNum f = (return . fromIntegral =<<) . f . unwrap
+wrapToMNum f = retNum . f . unwrap
 
 flipUSCall :: CWrapper a => (b -> IO c) -> (CPtr -> IO b) -> a -> c
 flipUSCall f = flip usCall (f =<<)
@@ -28,7 +28,7 @@ flipUSCall f = flip usCall (f =<<)
 usCall :: CWrapper a => (CPtr -> b) -> (b -> IO c) -> a -> c
 usCall f g = unsafePerformIO . g . f . unwrap
 
-retRes :: CWrapper a => (CPtr -> a) -> CPtr -> IO (Maybe a)
+retRes :: (CPtr -> a) -> CPtr -> IO (Maybe a)
 retRes w = return . retRes'
   where retRes' res | res == nullPtr = Nothing
                     | otherwise      = Just $ w res
@@ -50,3 +50,19 @@ eitherPeekStr ptr = eitherCon (peekCString ptr)
 
 eitherCon :: IO b -> (b -> a) -> CInt -> IOEitherErr a
 eitherCon rght con res = retEither res $ fmap (Right . con) $ rght
+
+retNum :: (Num b, Monad m, Integral a) => m a -> m b
+retNum a = return . fromIntegral =<< a
+
+retEnum :: (Monad m, Integral a, Enum b) => m a -> m b
+retEnum a = return . toEnum . fromIntegral =<< a
+
+callRetCons :: (CWrapper a, Monad m) => (CPtr -> m c) -> (c -> b) -> a -> m b
+callRetCons call cons = (return . cons =<<) . call . unwrap
+
+callRetNum :: (CWrapper a, Num b, Monad m, Integral c) => (CPtr -> m c) -> a
+           -> m b
+callRetNum call = retNum . call . unwrap
+
+callRetMaybe :: CWrapper a => (CPtr -> IO CInt) -> a -> IO (Maybe GitError)
+callRetMaybe call = (retMaybe =<<) . call . unwrap

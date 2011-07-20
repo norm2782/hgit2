@@ -47,7 +47,7 @@ commitTime :: Commit -> TimeT
 commitTime = usCall {#call unsafe git_commit_time#} (return =<<)
 
 timeOffset :: Commit -> Int
-timeOffset = usCall {#call unsafe git_commit_time_offset#} (return . fromIntegral =<<)
+timeOffset = usCall {#call unsafe git_commit_time_offset#} retNum
 
 committer :: Commit -> Signature
 committer = sigCall {#call unsafe git_commit_committer#}

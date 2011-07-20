@@ -54,43 +54,41 @@ idxExtFlags = fromEnum IntentToAdd .|. fromEnum SkipWorkTree
 -- index file in the provided path, without a repository to back it.
 openIndex :: String -> IO (Either GitError Index)
 openIndex path = alloca $ \index -> do
-  pth <- newCString path
-  res <- {#call git_index_open#} index pth
+  res <- {#call git_index_open#} index =<< newCString path
   retEither res $ fmap (Right . Index) $ peek index
 
 -- | Clear the contents (all the entries) of an index object. This clears the
 -- index object in memory; changes must be manually written to disk for them to
 -- take effect.
 clearIndex :: Index -> IO ()
-clearIndex (Index idx) = {#call git_index_clear#} idx
+clearIndex = {#call git_index_clear#} . unwrap
 
 -- | Free an existing index object.
 freeIndex :: Index -> IO ()
-freeIndex (Index idx) = {#call git_index_free#} idx
+freeIndex = {#call git_index_free#} . unwrap
 
 -- | Update the contents of an existing index object in memory by reading from
 -- the hard disk.
 readIndex :: Index -> IO (Maybe GitError)
-readIndex (Index idx) = retMaybe =<< {#call git_index_read#} idx
+readIndex = callRetMaybe {#call git_index_read#}
 
 -- | Write an existing index object from memory back to disk using an atomic
 -- file lock.
 writeIndex :: Index -> IO (Maybe GitError)
-writeIndex (Index idx) = retMaybe =<< {#call git_index_write#} idx
+writeIndex = callRetMaybe {#call git_index_write#}
 
 -- | Find the first index of any entries which point to given path in the Git
 -- index.
 findIndex :: Index -> String -> IO (Maybe Int)
 findIndex (Index idx) path = do
-  pth <- newCString path
-  res <- {#call git_index_find#} idx pth
+  res <- {#call git_index_find#} idx =<< newCString path
   return $ if res >= 0
              then Just $ fromIntegral res
              else Nothing
 
 -- | Remove all entries with equal path except last added
 uniqIndex :: Index -> IO ()
-uniqIndex (Index idx) = {#call git_index_uniq#} idx
+uniqIndex = {#call git_index_uniq#} . unwrap
 
 -- | Add or update an index entry from a file in disk
 addIndex :: Index -> String -> Int -> IO (Maybe GitError)
@@ -126,13 +124,11 @@ getIndex (Index idx) n =
 
 -- | Get the count of entries currently in the index
 entryCount :: Index -> IO Int
-entryCount (Index idx) =
-  return . fromIntegral =<< {#call git_index_entrycount#} idx
+entryCount = callRetNum {#call git_index_entrycount#}
 
 -- | Get the count of unmerged entries currently in the index
 entryCountUnMerged :: Index -> IO Int
-entryCountUnMerged (Index idx) =
-  return . fromIntegral =<< {#call git_index_entrycount_unmerged#} idx
+entryCountUnMerged = callRetNum {#call git_index_entrycount_unmerged#}
 
 retIEU :: CPtr -> IO (Maybe IndexEntryUnMerged)
 retIEU = retRes IndexEntryUnMerged
@@ -149,5 +145,4 @@ unmergedByIndex (Index idx) n =
 
 -- | Return the stage number from a git index entry
 entryStage :: IndexEntry -> IO Int
-entryStage (IndexEntry ie) =
-  return . fromIntegral =<< {#call git_index_entry_stage#} ie
+entryStage = callRetNum {#call git_index_entry_stage#}

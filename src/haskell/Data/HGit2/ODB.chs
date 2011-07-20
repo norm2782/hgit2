@@ -260,10 +260,8 @@ objData = (return . RawData =<<) . {#call git_odb_object_data#} . unwrap
 -- This is the real size of the `data` buffer, not the actual size of the
 -- object.
 odbObjSize :: ODBObj -> IO Integer
-odbObjSize =
-  (return . fromIntegral =<<) . {#call git_odb_object_size#} . unwrap
+odbObjSize = retNum . {#call git_odb_object_size#} . unwrap
 
 -- | Return the type of an ODB object
 odbObjType :: ODBObj -> IO OType
-odbObjType =
-  (return . toEnum . fromIntegral =<<) . {#call git_odb_object_type#} . unwrap
+odbObjType = retEnum . {#call git_odb_object_type#} . unwrap

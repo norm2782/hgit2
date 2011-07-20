@@ -28,17 +28,13 @@ instance CWrapper TreeEntry where
 instance CWrapper TreeBuilder where
   unwrap (TreeBuilder tb) = tb
 
-ioIntRet :: Integral a => IO a -> IO Int
-ioIntRet f = return . fromIntegral =<< f
-
 -- | Get the id of a tree.
 treeId :: Tree -> OID
-treeId (Tree t) = unsafePerformIO $
-  return . OID =<< {#call git_tree_id#} t
+treeId = unsafePerformIO . callRetCons {#call git_tree_id#} OID
 
 -- | Get the number of entries listed in a tree
 entryCount :: Tree -> IO Int
-entryCount (Tree t) = ioIntRet $ {#call git_tree_entrycount#} t
+entryCount = retNum . {#call git_tree_entrycount#} . unwrap
 
 -- | Lookup a tree entry by its filename
 entryByName :: Tree -> String -> IO TreeEntry
@@ -52,15 +48,15 @@ entryByIndex (Tree t) n =
 
 -- | Get the UNIX file attributes of a tree entry
 attributes :: TreeEntry -> IO Int
-attributes (TreeEntry e) = ioIntRet $ {#call git_tree_entry_attributes#} e
+attributes = retNum . {#call git_tree_entry_attributes#} . unwrap
 
 -- | Get the filename of a tree entry
 name :: TreeEntry -> IO String
-name (TreeEntry t) = peekCString =<< {#call git_tree_entry_name#} t
+name = (peekCString =<<) . {#call git_tree_entry_name#} . unwrap
 
 -- | Get the id of the object pointed by the entry
 entryId :: TreeEntry -> IO OID
-entryId (TreeEntry t) = fmap OID $ {#call git_tree_entry_id#} t
+entryId = callRetCons {#call git_tree_entry_id#} OID
 
 -- | Get the type of the object pointed by the entry
 entryType :: TreeEntry -> IO OType
@@ -89,11 +85,11 @@ createTreeBuilder tr = alloca $ \builder -> do
 
 -- | Clear all the entires in the builder
 clearTreeBuilder :: TreeBuilder -> IO ()
-clearTreeBuilder (TreeBuilder t) = {#call git_treebuilder_clear#} t
+clearTreeBuilder = {#call git_treebuilder_clear#} . unwrap
 
 -- | Free a tree builder
 freeTreeBuilder :: TreeBuilder -> IO ()
-freeTreeBuilder (TreeBuilder t) = {#call git_treebuilder_free#} t
+freeTreeBuilder = {#call git_treebuilder_free#} . unwrap
 
 -- Get an entry from the builder from its filename
 getTreeBuilder :: TreeBuilder -> String -> IO (Maybe TreeEntry)

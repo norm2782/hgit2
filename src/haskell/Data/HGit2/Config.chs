@@ -69,7 +69,7 @@ newConfig = alloca $ \cfg -> do
 -- instances in order. Instances with a higher priority will be accessed first.
 addFile :: Config -> ConfigFile -> Int -> IO GitError
 addFile (Config c) (ConfigFile f) pr =
-  return . toEnum . fromIntegral =<< {#call git_config_add_file#} c f (fromIntegral pr)
+  retEnum $ {#call git_config_add_file#} c f (fromIntegral pr)
 
 
 -- | Add an on-disk config file instance to an existing config
@@ -85,7 +85,7 @@ addFile (Config c) (ConfigFile f) pr =
 addOnDisk :: Config -> String -> Int -> IO GitError
 addOnDisk (Config c) pth pr = do
   pth' <- newCString pth
-  return . toEnum . fromIntegral =<< {#call git_config_add_file_ondisk#} c pth' (fromIntegral pr)
+  retEnum $ {#call git_config_add_file_ondisk#} c pth' (fromIntegral pr)
 
 -- | Create a new config instance containing a single on-disk file
 --
