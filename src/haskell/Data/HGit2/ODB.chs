@@ -7,6 +7,7 @@ module Data.HGit2.ODB where
 
 import Data.HGit2.Git2
 import Data.HGit2.Types
+import Data.HGit2.ODBBackend
 import Data.HGit2.OID
 import Foreign
 import Foreign.C
@@ -14,7 +15,6 @@ import Foreign.C
 newtype ODB = ODB CPtr
 newtype ODBObj = ODBObj CPtr
 newtype ODBStream = ODBStream CPtr
-newtype ODBBackend = ODBBackend CPtr
 
 instance CWrapper ODB where
   unwrap (ODB o) = o
@@ -24,8 +24,6 @@ instance CWrapper ODBObj where
 
 instance CWrapper ODBBackend where
   unwrap (ODBBackend o) = o
-
-{#enum git_odb_streammode as ODBStreamMode {underscoreToCase}#}
 
 -- | Create a new object database with no backends.
 --
