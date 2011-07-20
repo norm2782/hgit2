@@ -1,8 +1,14 @@
 module Data.HGit2.Git2 where
 
+import Data.HGit2.Errors
+import Foreign.C.String
+import Foreign.C.Types
 import Foreign
 
 type CPtr = Ptr ()
+
+type IOEitherErr a = IO (Either GitError a)
+type IOCanFail     = IO (Maybe GitError)
 
 class CWrapper a where
   unwrap :: a -> CPtr
@@ -21,3 +27,21 @@ retRes :: CWrapper a => (CPtr -> a) -> CPtr -> IO (Maybe a)
 retRes w = return . retRes'
   where retRes' res | res == nullPtr = Nothing
                     | otherwise      = Just $ w res
+
+retEither :: CInt -> IOEitherErr a -> IOEitherErr a
+retEither res f | res == 0  = f
+                | otherwise = return . Left . toEnum . fromIntegral $ res
+
+retMaybe :: CInt -> IOCanFail
+retMaybe = return . rm
+  where rm res | res == 0  = Nothing
+               | otherwise = Just . toEnum . fromIntegral $ res
+
+eitherPeek :: Storable b => Ptr b -> (b -> a) -> CInt -> IOEitherErr a
+eitherPeek ptr = eitherCon (peek ptr)
+
+eitherPeekStr :: CString -> (String -> a) -> CInt -> IOEitherErr a
+eitherPeekStr ptr = eitherCon (peekCString ptr)
+
+eitherCon :: IO b -> (b -> a) -> CInt -> IOEitherErr a
+eitherCon rght con res = retEither res $ fmap (Right . con) $ rght
