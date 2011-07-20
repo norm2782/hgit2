@@ -6,12 +6,14 @@
 module Data.HGit2.ODB where
 
 import Data.HGit2.Git2
+import Data.HGit2.Types
 import Data.HGit2.OID
 import Foreign
 import Foreign.C
 
 newtype ODB = ODB CPtr
 newtype ODBObj = ODBObj CPtr
+newtype ODBStream = ODBStream CPtr
 newtype ODBBackend = ODBBackend CPtr
 
 instance CWrapper ODB where
@@ -79,35 +81,22 @@ closeODB = {#call git_odb_close#} . unwrap
 readODB :: ODB -> OID -> IOEitherErr ODBObj
 readODB (ODB o) (OID i) = alloca $ \out ->
   eitherPeek out ODBObj =<< {#call git_odb_read#} out o i
-{-
-/**
- * Read an object from the database, given a prefix
- * of its identifier.
- *
- * This method queries all available ODB backends
- * trying to match the 'len' first hexadecimal
- * characters of the 'short_id'.
- * The remaining (GIT_OID_HEXSZ-len)*4 bits of
- * 'short_id' must be 0s.
- * 'len' must be at least GIT_OID_MINPREFIXLEN,
- * and the prefix must be long enough to identify
- * a unique object in all the backends; the
- * method will fail otherwise.
- *
- * The returned object is reference counted and
- * internally cached, so it should be closed
- * by the user once it's no longer in use.
- *
- * @param out pointer where to store the read object
- * @param db database to search for the object in.
- * @param short_id a prefix of the id of the object to read.
- * @param len the length of the prefix
- * @return GIT_SUCCESS if the object was read;
- *	GIT_ENOTFOUND if the object is not in the database.
- *	GIT_EAMBIGUOUS if the prefix is ambiguous (several objects match the prefix)
- */
-GIT_EXTERN(int) git_odb_read_prefix(git_odb_object **out, git_odb *db, const git_oid *short_id, unsigned int len);
 
+-- | Read an object from the database, given a prefix of its identifier.
+--
+-- This method queries all available ODB backends trying to match the 'len'
+-- first hexadecimal characters of the 'short_id'. The remaining
+-- (GIT_OID_HEXSZ-len)*4 bits of 'short_id' must be 0s. 'len' must be at least
+-- GIT_OID_MINPREFIXLEN, and the prefix must be long enough to identify a
+-- unique object in all the backends; the method will fail otherwise.
+--
+-- The returned object is reference counted and internally cached, so it should
+-- be closed by the user once it's no longer in use.
+readPrefix :: ODB -> OID -> Int -> IOEitherErr ODBObj
+readPrefix (ODB o) (OID i) n = alloca $ \out ->
+  eitherPeek out ODBObj =<< {#call git_odb_read_prefix#} out o i (fromIntegral n)
+
+{-
 /**
  * Read the header of an object from the database, without
  * reading its full contents.
@@ -127,18 +116,14 @@ GIT_EXTERN(int) git_odb_read_prefix(git_odb_object **out, git_odb *db, const git
  * - GIT_ENOTFOUND if the object is not in the database.
  */
 GIT_EXTERN(int) git_odb_read_header(size_t *len_p, git_otype *type_p, git_odb *db, const git_oid *id);
+TODO
+-}
 
-/**
- * Determine if the given object can be found in the object database.
- *
- * @param db database to be searched for the given object.
- * @param id the object to search for.
- * @return
- * - 1, if the object was found
- * - 0, otherwise
- */
-GIT_EXTERN(int) git_odb_exists(git_odb *db, const git_oid *id);
+-- | Determine if the given object can be found in the object database.
+exists :: ODB -> OID -> IO Bool
+exists (ODB o) (OID d) = return . toBool =<< {#call git_odb_exists#} o d
 
+{-
 /**
  * Write an object directly into the ODB
  *
@@ -159,6 +144,11 @@ GIT_EXTERN(int) git_odb_exists(git_odb *db, const git_oid *id);
  */
 GIT_EXTERN(int) git_odb_write(git_oid *oid, git_odb *odb, const void *data, size_t len, git_otype type);
 
+TODO
+-}
+{- writeODB :: OID -> ODB -> -}
+
+{-
 /**
  * Open a stream to write an object into the ODB
  *
@@ -187,33 +177,31 @@ GIT_EXTERN(int) git_odb_write(git_oid *oid, git_odb *odb, const void *data, size
  * @return 0 if the stream was created; error code otherwise
  */
 GIT_EXTERN(int) git_odb_open_wstream(git_odb_stream **stream, git_odb *db, size_t size, git_otype type);
+-}
+openWStream :: ODB -> OType -> IOEitherErr ODBStream
+openWStream (ODB o) oty = alloca $ \out -> eitherPeek out ODBStream =<<
+ {#call git_odb_open_wstream#} out o undefined (fromIntegral $ fromEnum oty)
 
-/**
- * Open a stream to read an object from the ODB
- *
- * Note that most backends do *not* support streaming reads
- * because they store their objects as compressed/delta'ed blobs.
- *
- * It's recommended to use `git_odb_read` instead, which is
- * assured to work on all backends.
- *
- * The returned stream will be of type `GIT_STREAM_RDONLY` and
- * will have the following methods:
- *
- *		- stream->read: read `n` bytes from the stream
- *		- stream->free: free the stream
- *
- * The stream must always be free'd or will leak memory.
- *
- * @see git_odb_stream
- *
- * @param stream pointer where to store the stream
- * @param db object database where the stream will read from
- * @param oid oid of the object the stream will read from
- * @return 0 if the stream was created; error code otherwise
- */
-GIT_EXTERN(int) git_odb_open_rstream(git_odb_stream **stream, git_odb *db, const git_oid *oid);
+-- | Open a stream to read an object from the ODB
+--
+-- Note that most backends do *not* support streaming reads because they store
+-- their objects as compressed/delta'ed blobs.
+--
+-- It's recommended to use `git_odb_read` instead, which is assured to work on
+-- all backends.
+--
+-- The returned stream will be of type `GIT_STREAM_RDONLY` and will have the
+-- following methods:
+--
+-- - stream->read: read `n` bytes from the stream
+-- - stream->free: free the stream
+--
+-- The stream must always be free'd or will leak memory.
+openRStream :: ODB -> OID -> IOEitherErr ODBStream
+openRStream (ODB o) (OID i) = alloca $ \out ->
+  eitherPeek out ODBStream =<< {#call git_odb_open_rstream#} out o i
 
+{-
 /**
  * Determine the object-ID (sha1 hash) of a data buffer
  *
@@ -240,56 +228,44 @@ GIT_EXTERN(int) git_odb_hash(git_oid *id, const void *data, size_t len, git_otyp
  * @return GIT_SUCCESS if valid; error code otherwise
  */
 GIT_EXTERN(int) git_odb_hashfile(git_oid *out, const char *path, git_otype type);
-
-/**
- * Close an ODB object
- *
- * This method must always be called once a `git_odb_object` is no
- * longer needed, otherwise memory will leak.
- *
- * @param object object to close
- */
-GIT_EXTERN(void) git_odb_object_close(git_odb_object *object);
-
-/**
- * Return the OID of an ODB object
- *
- * This is the OID from which the object was read from
- *
- * @param object the object
- * @return a pointer to the OID
- */
-GIT_EXTERN(const git_oid *) git_odb_object_id(git_odb_object *object);
-
-/**
- * Return the data of an ODB object
- *
- * This is the uncompressed, raw data as read from the ODB,
- * without the leading header.
- *
- * This pointer is owned by the object and shall not be free'd.
- *
- * @param object the object
- * @return a pointer to the data
- */
-GIT_EXTERN(const void *) git_odb_object_data(git_odb_object *object);
-
-/**
- * Return the size of an ODB object
- *
- * This is the real size of the `data` buffer, not the
- * actual size of the object.
- *
- * @param object the object
- * @return the size
- */
-GIT_EXTERN(size_t) git_odb_object_size(git_odb_object *object);
-
-/**
- * Return the type of an ODB object
- *
- * @param object the object
- * @return the type
- */
-GIT_EXTERN(git_otype) git_odb_object_type(git_odb_object *object);
 -}
+
+{- hashFile :: String -> OType -> IOEitherErr OID-}
+{- hashFile str oty = alloca $ \out -> do-}
+  {- str' <- newCString str-}
+  {- res <- {#call git_odb_hashfile#} out str' (fromIntegral $ fromEnum oty)-}
+  {- retEither res $ fmap (Right . OID) $ peek out-}
+
+-- | Close an ODB object
+--
+-- This method must always be called once a `git_odb_object` is no longer
+-- needed, otherwise memory will leak.
+closeODBObj :: ODBObj -> IO ()
+closeODBObj = {#call git_odb_object_close#} . unwrap
+
+-- | Return the OID of an ODB object
+--
+-- This is the OID from which the object was read from
+objId :: ODBObj -> IO OID
+objId = (return . OID =<<) . {#call git_odb_object_id#} . unwrap
+
+-- | Return the data of an ODB object
+--
+-- This is the uncompressed, raw data as read from the ODB, without the leading
+-- header.
+--
+-- This pointer is owned by the object and shall not be free'd.
+objData :: ODBObj -> IO RawData
+objData = (return . RawData =<<) . {#call git_odb_object_data#} . unwrap
+
+-- | Return the size of an ODB object
+-- This is the real size of the `data` buffer, not the actual size of the
+-- object.
+odbObjSize :: ODBObj -> IO Integer
+odbObjSize =
+  (return . fromIntegral =<<) . {#call git_odb_object_size#} . unwrap
+
+-- | Return the type of an ODB object
+odbObjType :: ODBObj -> IO OType
+odbObjType =
+  (return . toEnum . fromIntegral =<<) . {#call git_odb_object_type#} . unwrap
