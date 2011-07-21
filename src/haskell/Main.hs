@@ -18,6 +18,7 @@ import Data.HGit2.Repository
 import Data.HGit2.Revwalk
 import Data.HGit2.Tag
 import Data.HGit2.Remote
+import Data.HGit2.Transport
 
 
 main :: IO ()

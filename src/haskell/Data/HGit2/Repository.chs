@@ -5,7 +5,6 @@
 
 module Data.HGit2.Repository where
 
-import Data.HGit2.Errors
 import Data.HGit2.Git2
 import Data.HGit2.Index
 import Data.HGit2.ODB
