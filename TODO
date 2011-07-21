@@ -1,7 +1,11 @@
+Not yet implemented:
+refspec.h
+remote.h
+transport.h
+
+Partially implemented: (how to deal with size_t and callbacks?)
 odb.h
 oid.h
 refs.h
-refspec.h
-remote.h
 status.h
-transport.h
+

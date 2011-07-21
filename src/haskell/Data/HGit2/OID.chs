@@ -101,24 +101,24 @@ formatOid (OID o) = do
  *         errors, otherwise a pointer to an empty string.
  */
 GIT_EXTERN(char *) git_oid_to_string(char *out, size_t n, const git_oid *oid);
-
-/**
- * Copy an oid from one structure to another.
- *
- * @param out oid structure the result is written into.
- * @param src oid structure to copy from.
- */
-GIT_EXTERN(void) git_oid_cpy(git_oid *out, const git_oid *src);
-
-/**
- * Compare two oid structures.
- *
- * @param a first oid structure.
- * @param b second oid structure.
- * @return <0, 0, >0 if a < b, a == b, a > b.
- */
-GIT_EXTERN(int) git_oid_cmp(const git_oid *a, const git_oid *b);
 -}
+
+-- | Copy an oid from one structure to another.
+copyOID :: OID -> OID -> IO ()
+copyOID (OID a) (OID b) = {#call git_oid_cpy#} a b
+
+-- | Compare two oid structures.
+cmpOID :: OID -> OID -> Int
+cmpOID (OID a) (OID b) = unsafePerformIO $ return . fromIntegral =<< {#call git_oid_cmp#} a b
+
+instance Ord OID where
+  compare a b | c <  0    = LT
+              | c == 0    = EQ
+              | otherwise = GT
+              where c = cmpOID a b
+
+instance Eq OID where
+  a == b = compare a b == EQ
 
 -- | Compare the first 'len' hexadecimal characters (packets of 4 bits) of two
 -- oid structures.

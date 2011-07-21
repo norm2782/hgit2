@@ -7,7 +7,6 @@ module Data.HGit2.Status where
 
 import Data.HGit2.Git2
 import Data.HGit2.Repository
-import Data.HGit2.Errors
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
@@ -43,22 +42,9 @@ foreachStatus (Repository r) f p = do
   return $ if res == 0
              then Left  $ toEnum . fromIntegral $ res
              else Right $ fromIntegral res
-{-
-/**
- * 
- *
- * @param status_flags the status value
- * @param repo a repository object
- * @param path the file to retrieve status for, rooted at the repo's workdir
- * @return GIT_SUCCESS
- */
-GIT_EXTERN(int) git_status_file(unsigned int *status_flags, git_repository *repo, const char *path);
 
--}
 -- | Get file status for a single file
--- TODO: Use data.bits for first argument
-fileStatus :: Int -> Repository -> String -> IO GitError
-fileStatus st (Repository r) fl = do
-  fl' <- newCString fl
-  res <- {#call git_status_file#} undefined undefined undefined-- TODO st r fl'
-  return undefined
+fileStatus :: Repository -> String -> IO Int
+fileStatus (Repository r) fl = alloca $ \out -> do
+  _ <- {#call git_status_file#} out r =<< newCString fl
+  return . fromIntegral =<< peek out
