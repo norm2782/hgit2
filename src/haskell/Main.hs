@@ -17,6 +17,8 @@ import Data.HGit2.Refs
 import Data.HGit2.Repository
 import Data.HGit2.Revwalk
 import Data.HGit2.Tag
+import Data.HGit2.Remote
+
 
 main :: IO ()
 main = do
