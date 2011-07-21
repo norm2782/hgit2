@@ -64,10 +64,9 @@ entryType (TreeEntry t) =
   fmap (toEnum . fromIntegral) $ {#call git_tree_entry_type#} t
 
 -- | Convert a tree entry to the git_object it points too.
-entryToObj :: Repository -> TreeEntry -> IO (Either GitError GitObj)
-entryToObj (Repository r) (TreeEntry t) = alloca $ \obj -> do
-  res <- {#call git_tree_entry_2object#} obj r t
-  retEither res $ fmap (Right . GitObj) $ peek obj
+entryToObj :: Repository -> TreeEntry -> IOEitherErr GitObj
+entryToObj (Repository r) (TreeEntry t) =
+  callPeek GitObj (\out -> {#call git_tree_entry_2object#} out r t)
 
 -- Write a tree to the ODB from the index file
 createFromIndex :: OID -> Index -> IO (Maybe GitError)

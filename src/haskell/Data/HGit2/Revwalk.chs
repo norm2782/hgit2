@@ -33,8 +33,8 @@ instance CWrapper RevWalk where
 -- repository on a single thread; however, it is possible to have several
 -- revision walkers in several different threads walking the same repository.
 newWalk :: Repository -> IOEitherErr RevWalk
-newWalk (Repository r) = alloca $ \out ->
-  eitherPeek out RevWalk =<< {#call git_revwalk_new#} out r
+newWalk (Repository r) =
+  callPeek RevWalk (\out -> {#call git_revwalk_new#} out r)
 
 -- | Reset the revision walker for reuse.
 --

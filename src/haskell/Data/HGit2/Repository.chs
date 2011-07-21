@@ -23,55 +23,48 @@ instance CWrapper Repository where
 repoIs :: (CPtr -> IO CInt) -> Repository -> IO Bool
 repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
 
-openRepo :: String -> IO (Either GitError Repository)
-openRepo pth = alloca $ \pprepo -> do
+openRepo :: String -> IOEitherErr Repository
+openRepo pth = do
   pstr <- newCString pth
-  res  <- {#call git_repository_open#} pprepo pstr
-  retEither res $ fmap (Right . Repository) $ peek pprepo
+  callPeek Repository (\out -> {#call git_repository_open#} out pstr)
 
-openRepoObjDir :: String -> String -> String -> String
-               -> IO (Either GitError Repository)
-openRepoObjDir dir objDir idxFile workTree = alloca $ \pprepo -> do
+openRepoObjDir :: String -> String -> String -> String -> IOEitherErr Repository
+openRepoObjDir dir objDir idxFile workTree = do
   dirStr  <- newCString dir
   objDStr <- newCString objDir
   idxFStr <- newCString idxFile
   wtrStr  <- newCString workTree
-  res     <- {#call git_repository_open2#} pprepo dirStr objDStr idxFStr wtrStr
-  retEither res $ fmap (Right . Repository) $ peek pprepo
+  callPeek Repository (\out -> {#call git_repository_open2#} out dirStr objDStr idxFStr wtrStr)
 
-openRepoODB :: String -> ODB -> String -> String
-              -> IO (Either GitError Repository)
-openRepoODB dir (ODB db) idxFile workTree = alloca $ \pprepo -> do
+openRepoODB :: String -> ODB -> String -> String -> IOEitherErr Repository
+openRepoODB dir (ODB db) idxFile workTree = do
   dirStr  <- newCString dir
   idxFStr <- newCString idxFile
   wtrStr  <- newCString workTree
-  res     <- {#call git_repository_open3#} pprepo dirStr db idxFStr wtrStr
-  retEither res $ fmap (Right . Repository) $ peek pprepo
+  callPeek Repository (\out -> {#call git_repository_open3#} out dirStr db idxFStr wtrStr)
 
-discover :: String -> Bool -> String -> IO (Either GitError String)
-discover startPath acrossFs ceilingDirs = alloca $ \pth -> do
+discover :: String -> Bool -> String -> IOEitherErr String
+discover startPath acrossFs ceilingDirs = alloca $ \out -> do
   spStr  <- newCString startPath
   cdsStr <- newCString ceilingDirs
-  res    <- {#call git_repository_discover#} pth (fromIntegral $ sizeOf pth)
+  res    <- {#call git_repository_discover#} out undefined
                                              spStr (fromBool acrossFs) cdsStr
-  retEither res $ fmap Right $ peekCString pth
+  eitherPeekStr out id res
 
 database :: Repository -> IO ODB
-database = (return . ODB =<<) . {#call git_repository_database#} . unwrap
+database = callRetCons {#call git_repository_database#} ODB
 
-index :: Repository -> IO (Either GitError Index)
-index (Repository r) = alloca $ \idx -> do
-  res  <- {#call git_repository_index#} idx r
-  retEither res $ fmap (Right . Index) $ peek idx
+index :: Repository -> IOEitherErr Index
+index (Repository r) = callPeek Index
+  (\out -> {#call git_repository_index#} out r)
 
 free :: Repository -> IO ()
 free = {#call git_repository_free#} . unwrap
 
-init :: String -> Bool -> IO (Either GitError Repository)
-init pth bare = alloca $ \pprepo -> do
+init :: String -> Bool -> IOEitherErr Repository
+init pth bare = do
   pstr <- newCString pth
-  res  <- {#call git_repository_init#} pprepo pstr (fromBool bare)
-  retEither res $ fmap (Right . Repository) $ peek pprepo
+  callPeek Repository (\out -> {#call git_repository_init#} out pstr (fromBool bare))
 
 isHeadDetached :: Repository -> IO Bool
 isHeadDetached = repoIs {#call git_repository_head_detached#}

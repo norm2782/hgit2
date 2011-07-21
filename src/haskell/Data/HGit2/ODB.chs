@@ -27,7 +27,7 @@ instance CWrapper ODBObj where
 -- Before the ODB can be used for read/writing, a custom database backend must
 -- be manually added using `git_odb_add_backend()`
 newODB :: IOEitherErr ODB
-newODB = alloca $ \odb -> eitherPeek odb ODB =<< {#call git_odb_new#} odb
+newODB = callPeek ODB {#call git_odb_new#}
 
 -- Create a new object database and automatically add the two default backends:
 --
@@ -38,8 +38,8 @@ newODB = alloca $ \odb -> eitherPeek odb ODB =<< {#call git_odb_new#} odb
 --   as the Objects folder which contains a 'pack/' folder with the
 --   corresponding data
 openODB :: String -> IOEitherErr ODB
-openODB str = alloca $ \out ->
-  eitherPeek out ODB =<< {#call git_odb_open#} out =<< newCString str
+openODB str = callPeek ODB
+  (\out -> {#call git_odb_open#} out =<< newCString str)
 
 -- | Add a custom backend to an existing Object DB
 --
@@ -74,8 +74,8 @@ closeODB = {#call git_odb_close#} . unwrap
 -- The returned object is reference counted and internally cached, so it should
 -- be closed by the user once it's no longer in use.
 readODB :: ODB -> OID -> IOEitherErr ODBObj
-readODB (ODB o) (OID i) = alloca $ \out ->
-  eitherPeek out ODBObj =<< {#call git_odb_read#} out o i
+readODB (ODB o) (OID i) = callPeek ODBObj
+  (\out -> {#call git_odb_read#} out o i)
 
 -- | Read an object from the database, given a prefix of its identifier.
 --
@@ -88,8 +88,8 @@ readODB (ODB o) (OID i) = alloca $ \out ->
 -- The returned object is reference counted and internally cached, so it should
 -- be closed by the user once it's no longer in use.
 readPrefix :: ODB -> OID -> Int -> IOEitherErr ODBObj
-readPrefix (ODB o) (OID i) n = alloca $ \out ->
-  eitherPeek out ODBObj =<< {#call git_odb_read_prefix#} out o i (fromIntegral n)
+readPrefix (ODB o) (OID i) n = callPeek ODBObj
+  (\out -> {#call git_odb_read_prefix#} out o i (fromIntegral n))
 
 {-
 /**
@@ -172,10 +172,11 @@ TODO
  * @return 0 if the stream was created; error code otherwise
  */
 GIT_EXTERN(int) git_odb_open_wstream(git_odb_stream **stream, git_odb *db, size_t size, git_otype type);
+TODO: Finish this
 -}
 openWStream :: ODB -> OType -> IOEitherErr ODBStream
-openWStream (ODB o) oty = alloca $ \out -> eitherPeek out ODBStream =<<
- {#call git_odb_open_wstream#} out o undefined (fromIntegral $ fromEnum oty)
+openWStream (ODB o) oty = callPeek ODBStream
+  (\out -> {#call git_odb_open_wstream#} out o undefined (fromIntegral $ fromEnum oty))
 
 -- | Open a stream to read an object from the ODB
 --
@@ -193,8 +194,8 @@ openWStream (ODB o) oty = alloca $ \out -> eitherPeek out ODBStream =<<
 --
 -- The stream must always be free'd or will leak memory.
 openRStream :: ODB -> OID -> IOEitherErr ODBStream
-openRStream (ODB o) (OID i) = alloca $ \out ->
-  eitherPeek out ODBStream =<< {#call git_odb_open_rstream#} out o i
+openRStream (ODB o) (OID i) = callPeek ODBStream
+  (\out -> {#call git_odb_open_rstream#} out o i)
 
 {-
 /**
@@ -242,7 +243,7 @@ closeODBObj = {#call git_odb_object_close#} . unwrap
 --
 -- This is the OID from which the object was read from
 objId :: ODBObj -> IO OID
-objId = (return . OID =<<) . {#call git_odb_object_id#} . unwrap
+objId = callRetCons {#call git_odb_object_id#} OID
 
 -- | Return the data of an ODB object
 --
@@ -251,7 +252,7 @@ objId = (return . OID =<<) . {#call git_odb_object_id#} . unwrap
 --
 -- This pointer is owned by the object and shall not be free'd.
 objData :: ODBObj -> IO RawData
-objData = (return . RawData =<<) . {#call git_odb_object_data#} . unwrap
+objData = callRetCons {#call git_odb_object_data#} RawData
 
 -- | Return the size of an ODB object
 -- This is the real size of the `data` buffer, not the actual size of the

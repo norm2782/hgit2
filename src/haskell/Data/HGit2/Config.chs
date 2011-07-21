@@ -36,30 +36,24 @@ findGlobalConfig = alloca $ \pth -> do
     else return Nothing
 
 -- | Open the global configuration file
-openGlobalConfig :: IO (Either GitError Config)
-openGlobalConfig = alloca $ \conf -> do
-  res <- {#call git_config_open_global#} conf
-  retEither res $ fmap (Right . Config) $ peek conf
-
+openGlobalConfig :: IOEitherErr Config
+openGlobalConfig = callPeek Config {#call git_config_open_global#}
 
 -- | Create a configuration file backend for ondisk files
 --
 -- These are the normal `.gitconfig` files that Core Git processes. Note that
 -- you first have to add this file to a configuration object before you can
 -- query it for configuration variables.
-createOnDisk :: String -> IO (Either GitError ConfigFile)
-createOnDisk str = alloca $ \fl -> do
-  res  <- {#call git_config_file__ondisk#} fl =<< newCString str
-  retEither res $ fmap (Right . ConfigFile) $ peek fl
+createOnDisk :: String -> IOEitherErr ConfigFile
+createOnDisk str = callPeek ConfigFile
+  (\out -> {#call git_config_file__ondisk#} out =<< newCString str)
 
 -- | Allocate a new configuration object
 --
 -- This object is empty, so you have to add a file to it before you can do
 -- anything with it.
-newConfig :: IO (Either GitError Config)
-newConfig = alloca $ \cfg -> do
-  res <- {#call git_config_new#} cfg
-  retEither res $ fmap (Right . Config) $ peek cfg
+newConfig :: IOEitherErr Config
+newConfig = callPeek Config {#call git_config_new#}
 
 -- | Add a generic config file instance to an existing config
 --
@@ -92,28 +86,25 @@ addOnDisk (Config c) pth pr = do
 -- This method is a simple utility wrapper for the following sequence of calls:
 -- - newConfig
 -- - addOnDisk
-openOnDisk :: String -> IO (Either GitError Config)
-openOnDisk str = alloca $ \cfg -> do
-  res  <- {#call git_config_open_ondisk#} cfg =<< newCString str
-  retEither res $ fmap (Right . Config) $ peek cfg
+openOnDisk :: String -> IOEitherErr Config
+openOnDisk str = callPeek Config
+  (\out -> {#call git_config_open_ondisk#} out =<< newCString str)
 
 -- | Free the configuration and its associated memory and files
 freeConfig :: Config -> IO ()
 freeConfig = {#call git_config_free#} . unwrap
 
 -- | Get the value of an integer config variable.
-configInt :: Config -> String -> IO (Either GitError Int)
-configInt (Config c) str = alloca $ \out -> do
+configInt :: Config -> String -> IOEitherErr Int
+configInt (Config c) str = do
   str' <- newCString str
-  res  <- {#call git_config_get_int#} c str' out
-  retEither res $ fmap (Right . fromIntegral) $ peek out
+  callPeek fromIntegral ({#call git_config_get_int#} c str')
 
 -- | Get the value of an integer config variable.
-configInteger :: Config -> String -> IO (Either GitError Integer)
-configInteger (Config c) str = alloca $ \out -> do
+configInteger :: Config -> String -> IOEitherErr Integer
+configInteger (Config c) str = do
   str' <- newCString str
-  res  <- {#call git_config_get_long#} c str' out
-  retEither res $ fmap (Right . fromIntegral) $ peek out
+  callPeek fromIntegral ({#call git_config_get_long#} c str')
 
 -- | Get the value of a boolean config variable.
 configBool :: Config -> String -> IO (Either GitError Bool)
@@ -132,27 +123,27 @@ configString (Config c) vn = alloca $ \out -> do
   retEither res $ fmap Right $ peekCString =<< peek out
 
 -- | Set the value of an integer config variable.
-setConfigInt :: Config -> String -> Int -> IO (Maybe GitError)
+setConfigInt :: Config -> String -> Int -> IOCanFail
 setConfigInt conf vn val =
   mConfig {#call git_config_set_int#} conf vn (fromIntegral val)
 
 -- | Set the value of a long integer config variable.
-setConfigInteger :: Config -> String -> Integer -> IO (Maybe GitError)
+setConfigInteger :: Config -> String -> Integer -> IOCanFail
 setConfigInteger conf vn val =
   mConfig {#call git_config_set_long#} conf vn (fromIntegral val)
 
 -- | Set the value of a boolean config variable.
-setConfigBool :: Config -> String -> Bool -> IO (Maybe GitError)
+setConfigBool :: Config -> String -> Bool -> IOCanFail
 setConfigBool conf vn val =
   mConfig {#call git_config_set_bool#} conf vn (fromBool val)
 
 -- | Set the value of a string config variable.
-setConfigString :: Config -> String -> String -> IO (Maybe GitError)
+setConfigString :: Config -> String -> String -> IOCanFail
 setConfigString conf vn val =
   mConfig {#call git_config_set_string#} conf vn =<< newCString val
 
 -- | Delete a config variable
-delConfig :: Config -> String -> IO (Maybe GitError)
+delConfig :: Config -> String -> IOCanFail
 delConfig (Config c) vn = do
   str <- newCString vn
   retMaybe =<< {#call git_config_delete#} c str

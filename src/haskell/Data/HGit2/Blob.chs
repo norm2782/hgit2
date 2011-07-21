@@ -19,36 +19,18 @@ newtype Blob = Blob CPtr
 instance CWrapper Blob where
   unwrap (Blob b) = b
 
-{-
-/**
- * Get a read-only buffer with the raw content of a blob.
- *
- * A pointer to the raw content of a blob is returned;
- * this pointer is owned internally by the object and shall
- * not be free'd. The pointer may be invalidated at a later
- * time.
- *
- * @param blob pointer to the blob
- * @return the pointer; NULL if the blob has no contents
- */
-GIT_EXTERN(const void *) git_blob_rawcontent(git_blob *blob);
--}
-
--- TODO: Could the next two be made "pure"
--- TODO: Figure out what this function should return...
-rawBlobContent :: Blob -> IO CPtr
-rawBlobContent = {#call git_blob_rawcontent#} . unwrap
+-- TODO: Could the next two be made "pure"?
+rawBlobContent :: Blob -> IO RawData
+rawBlobContent = callRetCons {#call git_blob_rawcontent#} RawData
 
 rawBlobSize :: Blob -> IO Int
 rawBlobSize = wrapToMNum {#call git_blob_rawsize#}
 
 blobFromFile :: OID -> Repository -> String -> IO (Maybe GitError)
-blobFromFile (OID obj) (Repository repo) pth = do
-  pathStr  <- newCString pth
-  retMaybe =<< {#call git_blob_create_fromfile #} obj repo pathStr
+blobFromFile (OID obj) (Repository repo) pth =
+  retMaybe =<< {#call git_blob_create_fromfile #} obj repo =<< newCString pth
 
--- TODO: CPtr here?
-blobFromBuffer :: OID -> Repository -> CPtr -> IO (Maybe GitError)
-blobFromBuffer (OID o) (Repository repo) buf =
+blobFromBuffer :: OID -> Repository -> RawData -> IO (Maybe GitError)
+blobFromBuffer (OID o) (Repository repo) (RawData buf) =
   retMaybe =<< {#call git_blob_create_frombuffer#} o repo buf
                                                     (fromIntegral $ sizeOf buf)

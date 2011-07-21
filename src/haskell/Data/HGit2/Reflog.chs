@@ -29,8 +29,8 @@ instance CWrapper ReflogEntry where
 --
 -- The reflog must be freed manually by using freeReflog
 readReflog :: Reference -> IOEitherErr Reflog
-readReflog (Reference r) = alloca $ \out ->
-  eitherPeek out Reflog =<< {#call git_reflog_read#} out r
+readReflog (Reference r) = callPeek Reflog
+  (\out -> {#call git_reflog_read#} out r)
 
 -- | Write a new reflog for the given reference
 --
@@ -45,11 +45,8 @@ entryCount = callRetNum {#call git_reflog_entrycount#}
 
 -- | Lookup an entry by its index
 entryByIndex :: Reflog -> Int -> IO (Maybe ReflogEntry)
-entryByIndex (Reflog r) n = do
-  res <- {#call git_reflog_entry_byindex#} r (fromIntegral n)
-  return $ if res == nullPtr
-             then Nothing
-             else Just $ ReflogEntry res
+entryByIndex (Reflog r) n = retRes' ReflogEntry
+  ({#call git_reflog_entry_byindex#} r (fromIntegral n))
 
 unsafeCallStr :: CWrapper a => (CPtr -> IO CString) -> a -> String
 unsafeCallStr call = unsafePerformIO . (peekCString =<<) . call . unwrap

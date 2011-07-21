@@ -4,5 +4,4 @@ refs.h
 refspec.h
 remote.h
 status.h
-tag.h
 transport.h

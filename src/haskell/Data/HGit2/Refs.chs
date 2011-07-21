@@ -22,8 +22,8 @@ instance CWrapper Reference where
 -- The generated reference is owned by the repository and should not be freed
 -- by the user.
 lookupRef :: Repository -> String -> IOEitherErr Reference
-lookupRef (Repository r) str = alloca $ \out -> eitherPeek out Reference =<<
-  {#call git_reference_lookup#} out r =<< newCString str
+lookupRef (Repository r) str = callPeek Reference
+  (\out -> {#call git_reference_lookup#} out r =<< newCString str)
 
 -- | Create a new symbolic reference.
 --
@@ -35,10 +35,10 @@ lookupRef (Repository r) str = alloca $ \out -> eitherPeek out Reference =<<
 -- If `force` is true and there already exists a reference with the same name,
 -- it will be overwritten.
 createSymRef :: Repository -> String -> String -> Bool -> IOEitherErr Reference
-createSymRef (Repository r) n t f = alloca $ \out -> do
+createSymRef (Repository r) n t f = do
   nm  <- newCString n
   tg  <- newCString t
-  eitherPeek out Reference =<< {#call git_reference_create_symbolic#} out r nm tg (fromBool f)
+  callPeek Reference (\out -> {#call git_reference_create_symbolic#} out r nm tg (fromBool f))
 
 -- | Create a new object id reference.
 --
@@ -50,9 +50,9 @@ createSymRef (Repository r) n t f = alloca $ \out -> do
 -- If `force` is true and there already exists a reference with the same name,
 -- it will be overwritten.
 createOID :: Repository -> String -> OID -> Bool -> IOEitherErr Reference
-createOID (Repository r) n (OID i) f = alloca $ \out -> do
+createOID (Repository r) n (OID i) f = do
   ns <- newCString n
-  eitherPeek out Reference =<< {#call git_reference_create_oid#} out r ns i (fromBool f)
+  callPeek Reference (\out -> {#call git_reference_create_oid#} out r ns i (fromBool f))
 
 -- | Get the OID pointed to by a reference.
 --
@@ -85,8 +85,8 @@ refName = (peekCString =<<) . {#call git_reference_name#} . unwrap
 -- If a direct reference is passed as an argument, that reference is returned
 -- immediately
 resolveRef :: Reference -> IOEitherErr Reference
-resolveRef (Reference r) = alloca $ \out ->
-  eitherPeek out Reference =<< {#call git_reference_resolve#} out r
+resolveRef (Reference r) = callPeek Reference
+  (\out -> {#call git_reference_resolve#} out r)
 
 -- | Get the repository where a reference resides
 refOwner :: Reference -> IO Repository

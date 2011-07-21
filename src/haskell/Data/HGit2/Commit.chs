@@ -34,8 +34,8 @@ sigCall = flipUSCall (return . Signature)
 commitId :: Commit -> OID
 commitId = oidCall {#call unsafe git_commit_id#}
 
-treeOid :: Commit -> OID
-treeOid = oidCall {#call unsafe git_commit_tree_oid#}
+treeOID :: Commit -> OID
+treeOID = oidCall {#call unsafe git_commit_tree_oid#}
 
 shortCommitMsg :: Commit -> String
 shortCommitMsg = strCall {#call unsafe git_commit_message_short#}
@@ -55,25 +55,19 @@ committer = sigCall {#call unsafe git_commit_committer#}
 author :: Commit -> Signature
 author = sigCall {#call unsafe git_commit_author#}
 
-tree :: Commit -> IO (Either GitError Tree)
-tree (Commit c) = alloca $ \tr -> do
-  res <- {#call git_commit_tree#} tr c
-  retEither res $ fmap (Right . Tree) $ peek tr
+tree :: Commit -> IOEitherErr Tree
+tree (Commit c) = callPeek Tree (\out -> {#call git_commit_tree#} out c)
 
 parentCount :: Commit -> IO Int
 parentCount = wrapToMNum {#call git_commit_parentcount#}
 
-parent :: Commit -> Int -> IO (Either GitError Commit)
-parent (Commit c) n = alloca $ \prnt -> do
-  res <- {#call git_commit_parent#} prnt c (fromIntegral n)
-  retEither res $ fmap (Right . Commit) $ peek prnt
+parent :: Commit -> Int -> IOEitherErr Commit
+parent (Commit c) n =
+  callPeek Commit (\out -> {#call git_commit_parent#} out c (fromIntegral n))
 
 parentOID :: Commit -> Int -> IO (Maybe OID)
-parentOID (Commit c) n = do
-  res <- {#call git_commit_parent_oid#} c (fromIntegral n)
-  if res == nullPtr
-    then return Nothing
-    else return . Just . OID $ res
+parentOID (Commit c) n =
+  retRes OID =<< {#call git_commit_parent_oid#} c (fromIntegral n)
 
 createCommit :: OID -> Repository -> Maybe String -> Signature -> Signature
              -> String -> Tree -> [Commit] -> IO (Maybe GitError)

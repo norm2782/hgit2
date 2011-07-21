@@ -37,7 +37,7 @@ TODO: Review this
 -- GitSuccess, this function will return that value.
 
 foreachStatus :: Repository -> FunPtr (Ptr CChar -> CUInt -> CPtr -> IO CInt)
-              -> CPtr -> IO (Either GitError Int)
+              -> CPtr -> IOEitherErr Int
 foreachStatus (Repository r) f p = do
   res <- {#call git_status_foreach#} r f p
   return $ if res == 0

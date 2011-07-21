@@ -15,6 +15,7 @@ import Data.HGit2.ODBBackend
 import Data.HGit2.Refs
 import Data.HGit2.Repository
 import Data.HGit2.Revwalk
+import Data.HGit2.Tag
 
 main :: IO ()
 main = do

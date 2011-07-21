@@ -52,10 +52,9 @@ idxExtFlags = fromEnum IntentToAdd .|. fromEnum SkipWorkTree
 
 -- | Create a new bare Git index object as a memory representation of the Git
 -- index file in the provided path, without a repository to back it.
-openIndex :: String -> IO (Either GitError Index)
-openIndex path = alloca $ \index -> do
-  res <- {#call git_index_open#} index =<< newCString path
-  retEither res $ fmap (Right . Index) $ peek index
+openIndex :: String -> IOEitherErr Index
+openIndex path = callPeek Index
+  (\out -> {#call git_index_open#} out =<< newCString path)
 
 -- | Clear the contents (all the entries) of an index object. This clears the
 -- index object in memory; changes must be manually written to disk for them to
@@ -69,12 +68,12 @@ freeIndex = {#call git_index_free#} . unwrap
 
 -- | Update the contents of an existing index object in memory by reading from
 -- the hard disk.
-readIndex :: Index -> IO (Maybe GitError)
+readIndex :: Index -> IOCanFail
 readIndex = callRetMaybe {#call git_index_read#}
 
 -- | Write an existing index object from memory back to disk using an atomic
 -- file lock.
-writeIndex :: Index -> IO (Maybe GitError)
+writeIndex :: Index -> IOCanFail
 writeIndex = callRetMaybe {#call git_index_write#}
 
 -- | Find the first index of any entries which point to given path in the Git

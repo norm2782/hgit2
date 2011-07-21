@@ -29,9 +29,14 @@ usCall :: CWrapper a => (CPtr -> b) -> (b -> IO c) -> a -> c
 usCall f g = unsafePerformIO . g . f . unwrap
 
 retRes :: (CPtr -> a) -> CPtr -> IO (Maybe a)
-retRes w = return . retRes'
-  where retRes' res | res == nullPtr = Nothing
-                    | otherwise      = Just $ w res
+retRes con = return . ret
+  where ret res | res == nullPtr = Nothing
+                | otherwise      = Just $ con res
+
+retRes' :: Monad m => (Ptr a -> b) -> m (Ptr a) -> m (Maybe b)
+retRes' con ptr = return . retRes'' =<< ptr
+  where retRes'' res | res == nullPtr = Nothing
+                     | otherwise      = Just $ con res
 
 retEither :: CInt -> IOEitherErr a -> IOEitherErr a
 retEither res f | res == 0  = f
@@ -66,3 +71,9 @@ callRetNum call = retNum . call . unwrap
 
 callRetMaybe :: CWrapper a => (CPtr -> IO CInt) -> a -> IOCanFail
 callRetMaybe call = (retMaybe =<<) . call . unwrap
+
+callPeek :: Storable b => (b -> a) -> (Ptr b -> IO CInt) -> IOEitherErr a
+callPeek con call = alloca $ \out -> eitherPeek out con =<< call out
+
+unsafePeekStr :: CWrapper a => (CPtr -> IO CString) -> a -> String
+unsafePeekStr call = unsafePerformIO . (peekCString =<<) . call . unwrap
