@@ -3,7 +3,6 @@ oid.h
 refs.h
 refspec.h
 remote.h
-revwalk.h
 status.h
 tag.h
 transport.h
