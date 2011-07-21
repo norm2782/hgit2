@@ -11,21 +11,18 @@ import Data.HGit2.OID
 import Data.HGit2.Types
 import Data.HGit2.Repository
 import Data.HGit2.Object
+import Data.HGit2.Common
 import Foreign
 import Foreign.C
 
 newtype Tag = Tag CPtr
 newtype Target = Target CPtr
-newtype StrArray = StrArray CPtr
 
 instance CWrapper Tag where
   unwrap (Tag t) = t
 
 instance CWrapper Target where
   unwrap (Target t) = t
-
-instance CWrapper StrArray where
-  unwrap (StrArray a) = a
 
 -- | Get the id of a tag.
 tagID :: Tag -> IO OID

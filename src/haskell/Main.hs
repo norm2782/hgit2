@@ -3,6 +3,7 @@ module Main where
 import Data.HGit2.Blob
 import Data.HGit2.Commit
 import Data.HGit2.Config
+import Data.HGit2.Common
 import Data.HGit2.Errors
 import Data.HGit2.Git2
 import Data.HGit2.Index

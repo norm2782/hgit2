@@ -8,6 +8,8 @@ import Foreign
 type CPtr = Ptr ()
 
 type IOEitherErr a = IO (Either GitError a)
+-- TODO: Rename this: sometimes GitError is returned just to indicate a status.
+-- see createTag
 type IOCanFail     = IO (Maybe GitError)
 
 newtype RawData = RawData CPtr

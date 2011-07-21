@@ -9,6 +9,7 @@ import Data.HGit2.Git2
 import Data.HGit2.Repository
 import Data.HGit2.OID
 import Data.HGit2.Types
+import Data.HGit2.Common
 import Foreign
 import Foreign.C
 
@@ -143,31 +144,18 @@ delRef = callRetMaybe {#call git_reference_delete#}
 packAllRef :: Repository -> IOCanFail
 packAllRef = callRetMaybe {#call git_reference_packall#}
 
-{-
-/**
- * Fill a list with all the references that can be found
- * in a repository.
- *
- * The listed references may be filtered by type, or using
- * a bitwise OR of several types. Use the magic value
- * `GIT_REF_LISTALL` to obtain all references, including
- * packed ones.
- *
- * The string array will be filled with the names of all
- * references; these values are owned by the user and
- * should be free'd manually when no longer needed, using
- * `git_strarray_free`.
- *
- * @param array Pointer to a git_strarray structure where
- *		the reference names will be stored
- * @param repo Repository where to find the refs
- * @param list_flags Filtering flags for the reference
- *		listing.
- * @return 0 on success; error code otherwise
- */
-GIT_EXTERN(int) git_reference_listall(git_strarray *array, git_repository *repo, unsigned int list_flags);
--}
-listAllRef = undefined
+-- | Fill a list with all the references that can be found in a repository.
+--
+-- The listed references may be filtered by type, or using a bitwise OR of
+-- several types. Use the magic value `GIT_REF_LISTALL` to obtain all
+-- references, including packed ones.
+--
+-- The string array will be filled with the names of all references; these
+-- values are owned by the user and should be free'd manually when no longer
+-- needed, using `git_strarray_free`.
+listAllRef :: StrArray -> Repository -> Int -> IOCanFail
+listAllRef (StrArray s) (Repository r) n =
+  retMaybe =<< {#call git_reference_listall#} s r (fromIntegral n)
 
 {-
 /**
