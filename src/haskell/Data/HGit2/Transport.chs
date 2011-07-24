@@ -30,9 +30,6 @@ ls (Transport t) (HeadArray h) = retMaybe =<< {#call git_transport_ls#} t h
 close :: Transport -> IOCanFail
 close = (retMaybe =<<) . {#call git_transport_close#} . unwrap
 
-free :: Transport -> IO ()
-free = {#call git_transport_free#} . unwrap
-
 {- add :: Transport -> String -> IOCanFail-}
 {- add (Transport t) st =-}
   {- retMaybe =<< {#call git_transport_add#} t =<< newCString st-}

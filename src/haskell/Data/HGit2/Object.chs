@@ -20,16 +20,17 @@ instance CWrapper GitObj where
 
 -- | Lookup a reference to one of the objects in a repostory.
 lookupObj :: Repository -> OID -> OType -> IOEitherErr GitObj
-lookupObj (Repository r) (OID o) oty = callPeek GitObj
-  (\out -> {#call git_object_lookup#} out r o (fromIntegral $ fromEnum oty))
+lookupObj (Repository fp) (OID o) oty = withForeignPtr fp $ \r ->
+  callPeek GitObj (\out -> {#call git_object_lookup#} out r o
+    (fromIntegral $ fromEnum oty))
 
 -- | Lookup a reference to one of the objects in a repostory, given a prefix of
 -- its identifier (short id).
 -- TODO: Calculate size of OID dynamically, rather than passing an int
 lookupObjPref :: Repository -> OID -> Int -> OType -> IOEitherErr GitObj
-lookupObjPref (Repository r) (OID o) n oty = callPeek GitObj
-  (\out -> {#call git_object_lookup_prefix#} out r o (fromIntegral n)
-                                             (fromIntegral $ fromEnum oty))
+lookupObjPref (Repository fp) (OID o) n oty = withForeignPtr fp $ \r ->
+  callPeek GitObj (\out -> {#call git_object_lookup_prefix#} out r o
+    (fromIntegral n) (fromIntegral $ fromEnum oty))
 
 -- | Get the id (SHA1) of a repository object
 oid :: GitObj -> OID
@@ -47,9 +48,11 @@ objTy = unsafePerformIO . retEnum .
 --
 -- Any other operation may be run on the repository without affecting the
 -- object.
+-- TODO: Refactor
 objOwner :: GitObj -> Repository
-objOwner = unsafePerformIO . (return . Repository =<<) .
-  {#call git_object_owner#} . unwrap
+objOwner (GitObj o) = unsafePerformIO $ do
+  ptr <- newForeignPtr finalizerFree =<< {#call git_object_owner#} o
+  return $ Repository ptr
 
 -- | Close an open object
 --

@@ -53,7 +53,3 @@ connect (Remote r) n =
 -- The remote (or more exactly its transport) must be connected.
 remoteLs :: Remote -> HeadArray -> IOCanFail
 remoteLs (Remote r) (HeadArray h) = retMaybe =<< {#call git_remote_ls#} r h
-
--- | Free the memory associated with a remote
-freeRemote :: Remote -> IO ()
-freeRemote = {#call git_remote_free#} . unwrap

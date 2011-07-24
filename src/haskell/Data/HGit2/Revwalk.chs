@@ -86,10 +86,6 @@ setSorting :: RevWalk -> Sort -> IO ()
 setSorting (RevWalk r) s =
   {#call git_revwalk_sorting#} r (fromIntegral $ fromEnum s)
 
--- | Free a revision walker previously allocated.
-freeWalk :: RevWalk -> IO ()
-freeWalk = {#call git_revwalk_free#} . unwrap
-
 -- | Return the repository on which this walker is operating.
 walkerRepo :: RevWalk -> IO Repository
 walkerRepo = callRetCons {#call git_revwalk_repository#} Repository

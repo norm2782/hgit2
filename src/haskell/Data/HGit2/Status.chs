@@ -37,7 +37,7 @@ TODO: Review this
 
 foreachStatus :: Repository -> FunPtr (Ptr CChar -> CUInt -> CPtr -> IO CInt)
               -> CPtr -> IOEitherErr Int
-foreachStatus (Repository r) f p = do
+foreachStatus (Repository fp) f p = withForeignPtr fp $ \r -> do
   res <- {#call git_status_foreach#} r f p
   return $ if res == 0
              then Left  $ toEnum . fromIntegral $ res
@@ -45,6 +45,7 @@ foreachStatus (Repository r) f p = do
 
 -- | Get file status for a single file
 fileStatus :: Repository -> String -> IO Int
-fileStatus (Repository r) fl = withCString fl $ \loc -> alloca $ \out -> do
+fileStatus (Repository fp) fl = withForeignPtr fp $ \r ->
+  withCString fl $ \loc -> alloca $ \out -> do
   _ <- {#call git_status_file#} out r loc
   return . fromIntegral =<< peek out

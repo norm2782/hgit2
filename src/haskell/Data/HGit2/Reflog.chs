@@ -68,6 +68,3 @@ committer = unsafePerformIO . (fmap Signature) .
 entryMsg :: ReflogEntry -> String
 entryMsg = unsafeCallStr {#call unsafe git_reflog_entry_msg#}
 
--- | Free the reflog
-freeReflog :: Reflog -> IO ()
-freeReflog = {#call git_reflog_free#} . unwrap

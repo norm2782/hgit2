@@ -86,10 +86,6 @@ createTreeBuilder tr = alloca $ \builder -> do
 clearTreeBuilder :: TreeBuilder -> IO ()
 clearTreeBuilder = {#call git_treebuilder_clear#} . unwrap
 
--- | Free a tree builder
-freeTreeBuilder :: TreeBuilder -> IO ()
-freeTreeBuilder = {#call git_treebuilder_free#} . unwrap
-
 -- Get an entry from the builder from its filename
 getTreeBuilder :: TreeBuilder -> String -> IO (Maybe TreeEntry)
 getTreeBuilder (TreeBuilder b) fn = withCString fn $ \name ->

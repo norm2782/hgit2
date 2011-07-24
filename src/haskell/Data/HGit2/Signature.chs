@@ -18,13 +18,17 @@ instance CWrapper Signature where
 -- | Create a new action signature. The signature must be freed manually or
 -- using freeSignature
 newSignature :: String -> String -> TimeT -> Int -> IO (Maybe Signature)
-newSignature nm em t off = withCString nm $ \nm' -> withCString em $ \em' ->
+newSignature nm em t off =
+  withCString nm $ \nm' ->
+  withCString em $ \em' ->
   retSig =<< {#call git_signature_new#} nm' em' t (fromIntegral off)
 
 -- | Create a new action signature with a timestamp of 'now'. The signature
 -- must be freed manually or using freeSignature
 nowSignature :: String -> String -> IO (Maybe Signature)
-nowSignature nm em = withCString nm $ \nm' -> withCString em $ \em' ->
+nowSignature nm em =
+  withCString nm $ \nm' ->
+  withCString em $ \em' ->
   retSig =<< {#call git_signature_now#} nm' em'
 
 retSig :: CPtr -> IO (Maybe Signature)
@@ -32,8 +36,6 @@ retSig = retRes Signature
 
 -- | Create a copy of an existing signature.
 dupSignature :: Signature -> IO (Maybe Signature)
-dupSignature = (retSig =<<) . {#call git_signature_dup#} . unwrap
-
--- | Free an existing signature
-freeSignature :: Signature -> IO ()
-freeSignature = {#call git_signature_free#} . unwrap
+dupSignature (Signature sfp) =
+  withForeignPtr sfp $ \sig ->
+  retSig =<< {#call git_signature_dup#} sig

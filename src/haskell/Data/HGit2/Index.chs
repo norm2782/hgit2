@@ -62,10 +62,6 @@ openIndex path = withCString path $ \pth ->
 clearIndex :: Index -> IO ()
 clearIndex = {#call git_index_clear#} . unwrap
 
--- | Free an existing index object.
-freeIndex :: Index -> IO ()
-freeIndex = {#call git_index_free#} . unwrap
-
 -- | Update the contents of an existing index object in memory by reading from
 -- the hard disk.
 readIndex :: Index -> IOCanFail

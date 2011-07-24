@@ -63,7 +63,8 @@ GIT_EXTERN(void) git_oid_fromraw(git_oid *out, const unsigned char *raw);
 
 -- | Format a git_oid into a hex string.
 fmtOID :: OID -> IO String
-fmtOID (OID o) = alloca $ \out -> do
+fmtOID (OID ofp) = withForeignPtr ofp $ \o ->
+  alloca $ \out -> do
   {#call git_oid_fmt#} out o
   peekCString out
 
@@ -72,13 +73,15 @@ fmtOID (OID o) = alloca $ \out -> do
 -- The resulting string is "aa/...", where "aa" is the first two hex digitis of
 -- the oid and "..." is the remaining 38 digits.
 pathFmt :: OID -> IO String
-pathFmt (OID o) = alloca $ \out -> do
+pathFmt (OID ofp) = withForeignPtr ofp $ \o ->
+  alloca $ \out -> do
   {#call git_oid_pathfmt#} out o
   peekCString out
 
 -- | Format an OID into a newly allocated String.
 formatOid :: OID -> IO (Maybe String)
-formatOid (OID o) = do
+formatOid (OID ofp) =
+  withForeignPtr ofp $ \o -> do
   res <- {#call git_oid_allocfmt#} o
   if res == nullPtr
     then return Nothing
@@ -105,11 +108,16 @@ GIT_EXTERN(char *) git_oid_to_string(char *out, size_t n, const git_oid *oid);
 
 -- | Copy an oid from one structure to another.
 copyOID :: OID -> OID -> IO ()
-copyOID (OID a) (OID b) = {#call git_oid_cpy#} a b
+copyOID (OID afp) (OID bfp) =
+  withForeignPtr afp $ \a ->
+  withForeignPtr bfp $ \b ->
+  {#call git_oid_cpy#} a b
 
 -- | Compare two oid structures.
 cmpOID :: OID -> OID -> Int
-cmpOID (OID a) (OID b) = unsafePerformIO $
+cmpOID (OID afp) (OID bfp) = unsafePerformIO $
+  withForeignPtr afp $ \a ->
+  withForeignPtr bfp $ \b ->
   return . fromIntegral =<< {#call git_oid_cmp#} a b
 
 instance Ord OID where
@@ -124,6 +132,9 @@ instance Eq OID where
 -- | Compare the first 'len' hexadecimal characters (packets of 4 bits) of two
 -- oid structures.
 ncmp :: OID -> OID -> Int -> Bool
-ncmp (OID a) (OID b) n = unsafePerformIO $ do
+ncmp (OID afp) (OID bfp) n =
+  unsafePerformIO $
+  withForeignPtr afp $ \a ->
+  withForeignPtr bfp $ \b -> do
   res <- {#call unsafe git_oid_ncmp#} a b (fromIntegral n)
   return $ res == 0

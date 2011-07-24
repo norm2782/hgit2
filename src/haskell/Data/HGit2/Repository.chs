@@ -13,6 +13,7 @@ import Foreign
 import Foreign.C.String
 import Foreign.C.Types
 
+
 newtype Repository = Repository CPtr
 
 instance CWrapper Repository where
@@ -21,7 +22,8 @@ instance CWrapper Repository where
 {#enum git_repository_pathid as RepositoryPathID {underscoreToCase}#}
 
 repoIs :: (CPtr -> IO CInt) -> Repository -> IO Bool
-repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
+repoIs ffi (Repository fp) = withForeignPtr fp $ \ptr ->
+  return . toBool =<< ffi ptr
 
 -- | Open a git repository.
 --
@@ -41,7 +43,7 @@ repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
 -- repository or fail is 'path' is neither.
 openRepo :: String -> IOEitherErr Repository
 openRepo pth = withCString pth $ \pstr ->
-  callPeek Repository (\out -> {#call git_repository_open#} out pstr)
+  callPeek' Repository (\out -> {#call git_repository_open#} out pstr)
 
 -- | Open a git repository by manually specifying all its paths
 openRepoObjDir :: String -> String -> String -> String
@@ -49,16 +51,18 @@ openRepoObjDir :: String -> String -> String -> String
 openRepoObjDir dir objDir idxFile workTree = withCString dir $ \dirStr ->
   withCString objDir $ \objDStr -> withCString idxFile $ \idxFStr ->
   withCString workTree $ \wtrStr ->
-  callPeek Repository (\out -> {#call git_repository_open2#} out dirStr objDStr
-                                                             idxFStr wtrStr)
+  callPeek' Repository (\out -> {#call git_repository_open2#} out dirStr objDStr
+                                                              idxFStr wtrStr)
 
 -- | Open a git repository by manually specifying its paths and the object
 -- database it will use.
 openRepoODB :: String -> ODB -> String -> String -> IOEitherErr Repository
-openRepoODB dir (ODB db) idxFile workTree =  withCString dir $ \dirStr ->
-  withCString idxFile $ \idxFStr -> withCString workTree $ \wtrStr ->
-  callPeek Repository (\out -> {#call git_repository_open3#} out dirStr db
-                                                             idxFStr wtrStr)
+openRepoODB dir (ODB db) idxFile workTree =
+  withCString dir $ \dirStr ->
+  withCString idxFile $ \idxFStr ->
+  withCString workTree $ \wtrStr ->
+  callPeek' Repository (\out -> {#call git_repository_open3#} out dirStr db
+                                                              idxFStr wtrStr)
 
 -- | Look for a git repository and copy its path in the given buffer.
 -- The lookup start from base_path and walk across parent directories if
@@ -76,8 +80,11 @@ discover sz startPath acrossFs ceilingDirs = alloca $ \out ->
   eitherPeekStr out id res
 
 -- | Get the object database behind a Git repository
+-- TODO: Refactor
 database :: Repository -> IO ODB
-database = callRetCons {#call git_repository_database#} ODB
+database (Repository fp) = withForeignPtr fp $ \r -> do
+  o <- {#call git_repository_database#} r
+  return $ ODB o
 
 -- | Open the Index file of a Git repository
 --
@@ -92,22 +99,15 @@ database = callRetCons {#call git_repository_database#} ODB
 -- Each returned `git_index` object must be manually freed by the user, using
 -- `git_index_free`.
 index :: Repository -> IOEitherErr Index
-index (Repository r) = callPeek Index
-  (\out -> {#call git_repository_index#} out r)
-
--- | Free a previously allocated repository
---
--- Note that after a repository is free'd, all the objects it has spawned will
--- still exist until they are manually closed by the user with
--- `git_object_close`, but accessing any of the attributes of an object without
--- a backing repository will result in undefined behavior
-free :: Repository -> IO ()
-free = {#call git_repository_free#} . unwrap
+index (Repository fp) =
+  withForeignPtr fp $ \r ->
+  callPeek' Index (\out -> {#call git_repository_index#} out r)
 
 -- | Creates a new Git repository in the given folder.
 init :: String -> Bool -> IOEitherErr Repository
 init pth bare = withCString pth $ \pstr ->
-  callPeek Repository (\out -> {#call git_repository_init#} out pstr (fromBool bare))
+  callPeek' Repository
+            (\out -> {#call git_repository_init#} out pstr (fromBool bare))
 
 -- | Check if a repository's HEAD is detached
 --
@@ -138,8 +138,8 @@ isEmpty = repoIs {#call git_repository_is_empty#}
 --  GIT_REPO_PATH_ODB: return the path to the ODB
 --  GIT_REPO_PATH_WORKDIR: return the path to the working directory
 path :: Repository -> RepositoryPathID -> IO String
-path (Repository r) pathID = peekCString =<< {#call git_repository_path#} r p
-  where p = fromIntegral $ fromEnum pathID
+path (Repository fp) pid = withForeignPtr fp $ \r ->
+  peekCString =<< {#call git_repository_path#} r (fromIntegral $ fromEnum pid)
 
 -- | Check if a repository is bare
 isBare :: Repository -> IO Bool
@@ -173,6 +173,9 @@ isBare = repoIs {#call git_repository_is_bare#}
 --
 -- TODO: DEal with null strings like Maybe values
 config :: Repository -> String -> String -> IOEitherErr Config
-config (Repository r) up sp = withCString up $ \upt -> withCString sp $ \spt ->
-  callPeek Config (\out -> {#call git_repository_config#} out r upt spt)
+config (Repository rfp) up sp =
+  withForeignPtr rfp $ \r ->
+    withCString up $ \upt ->
+    withCString sp $ \spt ->
+    callPeek' Config (\out -> {#call git_repository_config#} out r upt spt)
 

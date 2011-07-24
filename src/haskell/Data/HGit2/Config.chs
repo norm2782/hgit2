@@ -89,10 +89,6 @@ openOnDisk :: String -> IOEitherErr Config
 openOnDisk str = withCString str $ \str' ->
   callPeek Config (\out -> {#call git_config_open_ondisk#} out str')
 
--- | Free the configuration and its associated memory and files
-freeConfig :: Config -> IO ()
-freeConfig = {#call git_config_free#} . unwrap
-
 -- | Get the value of an integer config variable.
 configInt :: Config -> String -> IOEitherErr Int
 configInt (Config c) str = withCString str $ \str' ->
