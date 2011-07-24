@@ -23,8 +23,8 @@ instance CWrapper Reference where
 -- The generated reference is owned by the repository and should not be freed
 -- by the user.
 lookupRef :: Repository -> String -> IOEitherErr Reference
-lookupRef (Repository r) str = callPeek Reference
-  (\out -> {#call git_reference_lookup#} out r =<< newCString str)
+lookupRef (Repository r) str = withCString str $ \str' -> callPeek Reference
+  (\out -> {#call git_reference_lookup#} out r str')
 
 -- | Create a new symbolic reference.
 --
@@ -36,10 +36,9 @@ lookupRef (Repository r) str = callPeek Reference
 -- If `force` is true and there already exists a reference with the same name,
 -- it will be overwritten.
 createSymRef :: Repository -> String -> String -> Bool -> IOEitherErr Reference
-createSymRef (Repository r) n t f = do
-  nm  <- newCString n
-  tg  <- newCString t
-  callPeek Reference (\out -> {#call git_reference_create_symbolic#} out r nm tg (fromBool f))
+createSymRef (Repository r) n t f = withCString n $ \nm ->
+  withCString t $ \tg -> callPeek Reference
+  (\out -> {#call git_reference_create_symbolic#} out r nm tg (fromBool f))
 
 -- | Create a new object id reference.
 --
@@ -51,9 +50,9 @@ createSymRef (Repository r) n t f = do
 -- If `force` is true and there already exists a reference with the same name,
 -- it will be overwritten.
 createOID :: Repository -> String -> OID -> Bool -> IOEitherErr Reference
-createOID (Repository r) n (OID i) f = do
-  ns <- newCString n
-  callPeek Reference (\out -> {#call git_reference_create_oid#} out r ns i (fromBool f))
+createOID (Repository r) n (OID i) f = withCString n $ \ns ->
+  callPeek Reference (\out -> {#call git_reference_create_oid#} out r ns i
+                                                                (fromBool f))
 
 -- | Get the OID pointed to by a reference.
 --
@@ -99,8 +98,8 @@ refOwner = callRetCons {#call git_reference_owner#} Repository
 --
 -- The reference will be automatically updated in memory and on disk.
 setRefTarget :: Reference -> String -> IOCanFail
-setRefTarget (Reference r) s =
-  retMaybe =<< {#call git_reference_set_target#} r =<< newCString s
+setRefTarget (Reference r) s = withCString s $ \s' ->
+  retMaybe =<< {#call git_reference_set_target#} r s'
 
 -- | Set the OID target of a reference.
 --
@@ -118,8 +117,7 @@ setRefOID (Reference r) (OID o) =
 --
 -- The refernece will be immediately renamed in-memory and on disk.
 renameRef :: Reference -> String -> Bool -> IOCanFail
-renameRef (Reference r) s b = do
-  str <- newCString s
+renameRef (Reference r) s b = withCString s $ \str ->
   retMaybe =<< {#call git_reference_rename#} r str (fromBool b)
 
 -- | Delete an existing reference

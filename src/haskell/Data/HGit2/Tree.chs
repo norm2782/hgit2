@@ -38,8 +38,8 @@ entryCount = retNum . {#call git_tree_entrycount#} . unwrap
 
 -- | Lookup a tree entry by its filename
 entryByName :: Tree -> String -> IO TreeEntry
-entryByName (Tree t) fn =
-  fmap TreeEntry $ {#call git_tree_entry_byname#} t =<< newCString fn
+entryByName (Tree t) fn = withCString fn $ \nm ->
+  fmap TreeEntry $ {#call git_tree_entry_byname#} t nm
 
 -- | Lookup a tree entry by its position in the tree
 entryByIndex :: Tree -> Int -> IO TreeEntry
@@ -92,21 +92,21 @@ freeTreeBuilder = {#call git_treebuilder_free#} . unwrap
 
 -- Get an entry from the builder from its filename
 getTreeBuilder :: TreeBuilder -> String -> IO (Maybe TreeEntry)
-getTreeBuilder (TreeBuilder b) fn =
-  retRes TreeEntry =<< {#call git_treebuilder_get#} b =<< newCString fn
+getTreeBuilder (TreeBuilder b) fn = withCString fn $ \name ->
+  retRes TreeEntry =<< {#call git_treebuilder_get#} b name
 
 -- | Add or update an entry to the builder
 insertTreeBuilder :: TreeBuilder -> String -> OID -> Int
                   -> IO (Either GitError TreeEntry)
-insertTreeBuilder (TreeBuilder b) fn (OID o) as = alloca $ \entry -> do
-  fn' <- newCString fn
-  res <- {#call git_treebuilder_insert#} entry b fn' o (fromIntegral as)
+insertTreeBuilder (TreeBuilder b) fn (OID o) as = alloca $ \entry ->
+  withCString fn $ \nm -> do
+  res <- {#call git_treebuilder_insert#} entry b nm o (fromIntegral as)
   retEither res $ fmap (Right . TreeEntry) $ peek entry
 
 -- | Remove an entry from the builder by its filename
 removeTreeBuilder :: TreeBuilder -> String -> IO (Maybe GitError)
-removeTreeBuilder (TreeBuilder t) fn =
-  retMaybe =<< {#call git_treebuilder_remove#} t =<< newCString fn
+removeTreeBuilder (TreeBuilder t) fn = withCString fn $ \nm ->
+  retMaybe =<< {#call git_treebuilder_remove#} t nm
 
 {-
 /**

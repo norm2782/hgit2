@@ -27,8 +27,8 @@ rawBlobSize :: Blob -> IO Int
 rawBlobSize = wrapToMNum {#call git_blob_rawsize#}
 
 blobFromFile :: OID -> Repository -> String -> IO (Maybe GitError)
-blobFromFile (OID obj) (Repository repo) pth =
-  retMaybe =<< {#call git_blob_create_fromfile #} obj repo =<< newCString pth
+blobFromFile (OID obj) (Repository repo) pth = withCString pth $ \pth' ->
+  retMaybe =<< {#call git_blob_create_fromfile #} obj repo pth'
 
 blobFromBuffer :: OID -> Repository -> RawData -> IO (Maybe GitError)
 blobFromBuffer (OID o) (Repository repo) (RawData buf) =

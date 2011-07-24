@@ -109,7 +109,8 @@ copyOID (OID a) (OID b) = {#call git_oid_cpy#} a b
 
 -- | Compare two oid structures.
 cmpOID :: OID -> OID -> Int
-cmpOID (OID a) (OID b) = unsafePerformIO $ return . fromIntegral =<< {#call git_oid_cmp#} a b
+cmpOID (OID a) (OID b) = unsafePerformIO $
+  return . fromIntegral =<< {#call git_oid_cmp#} a b
 
 instance Ord OID where
   compare a b | c <  0    = LT

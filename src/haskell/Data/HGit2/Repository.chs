@@ -40,27 +40,25 @@ repoIs ffi (Repository ptr) = return . toBool =<< ffi ptr
 -- The function will automatically detect if 'path' is a normal or bare
 -- repository or fail is 'path' is neither.
 openRepo :: String -> IOEitherErr Repository
-openRepo pth = do
-  pstr <- newCString pth
+openRepo pth = withCString pth $ \pstr ->
   callPeek Repository (\out -> {#call git_repository_open#} out pstr)
 
 -- | Open a git repository by manually specifying all its paths
-openRepoObjDir :: String -> String -> String -> String -> IOEitherErr Repository
-openRepoObjDir dir objDir idxFile workTree = do
-  dirStr  <- newCString dir
-  objDStr <- newCString objDir
-  idxFStr <- newCString idxFile
-  wtrStr  <- newCString workTree
-  callPeek Repository (\out -> {#call git_repository_open2#} out dirStr objDStr idxFStr wtrStr)
+openRepoObjDir :: String -> String -> String -> String
+               -> IOEitherErr Repository
+openRepoObjDir dir objDir idxFile workTree = withCString dir $ \dirStr ->
+  withCString objDir $ \objDStr -> withCString idxFile $ \idxFStr ->
+  withCString workTree $ \wtrStr ->
+  callPeek Repository (\out -> {#call git_repository_open2#} out dirStr objDStr
+                                                             idxFStr wtrStr)
 
 -- | Open a git repository by manually specifying its paths and the object
 -- database it will use.
 openRepoODB :: String -> ODB -> String -> String -> IOEitherErr Repository
-openRepoODB dir (ODB db) idxFile workTree = do
-  dirStr  <- newCString dir
-  idxFStr <- newCString idxFile
-  wtrStr  <- newCString workTree
-  callPeek Repository (\out -> {#call git_repository_open3#} out dirStr db idxFStr wtrStr)
+openRepoODB dir (ODB db) idxFile workTree =  withCString dir $ \dirStr ->
+  withCString idxFile $ \idxFStr -> withCString workTree $ \wtrStr ->
+  callPeek Repository (\out -> {#call git_repository_open3#} out dirStr db
+                                                             idxFStr wtrStr)
 
 -- | Look for a git repository and copy its path in the given buffer.
 -- The lookup start from base_path and walk across parent directories if
@@ -71,9 +69,8 @@ openRepoODB dir (ODB db) idxFile workTree = do
 -- The method will automatically detect if the repository is bare (if there is
 -- a repository).
 discover :: CSize -> String -> Bool -> String -> IOEitherErr String
-discover sz startPath acrossFs ceilingDirs = alloca $ \out -> do
-  spStr  <- newCString startPath
-  cdsStr <- newCString ceilingDirs
+discover sz startPath acrossFs ceilingDirs = alloca $ \out ->
+  withCString startPath $ \spStr -> withCString ceilingDirs $ \cdsStr -> do
   res    <- {#call git_repository_discover#} out (fromIntegral sz) spStr
                                              (fromBool acrossFs) cdsStr
   eitherPeekStr out id res
@@ -109,8 +106,7 @@ free = {#call git_repository_free#} . unwrap
 
 -- | Creates a new Git repository in the given folder.
 init :: String -> Bool -> IOEitherErr Repository
-init pth bare = do
-  pstr <- newCString pth
+init pth bare = withCString pth $ \pstr ->
   callPeek Repository (\out -> {#call git_repository_init#} out pstr (fromBool bare))
 
 -- | Check if a repository's HEAD is detached
@@ -177,8 +173,6 @@ isBare = repoIs {#call git_repository_is_bare#}
 --
 -- TODO: DEal with null strings like Maybe values
 config :: Repository -> String -> String -> IOEitherErr Config
-config (Repository r) up sp = do
-  upt <- newCString up
-  spt <- newCString sp
+config (Repository r) up sp = withCString up $ \upt -> withCString sp $ \spt ->
   callPeek Config (\out -> {#call git_repository_config#} out r upt spt)
 

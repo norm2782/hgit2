@@ -45,8 +45,8 @@ openGlobalConfig = callPeek Config {#call git_config_open_global#}
 -- you first have to add this file to a configuration object before you can
 -- query it for configuration variables.
 createOnDisk :: String -> IOEitherErr ConfigFile
-createOnDisk str = callPeek ConfigFile
-  (\out -> {#call git_config_file__ondisk#} out =<< newCString str)
+createOnDisk str = withCString str $ \str' ->
+  callPeek ConfigFile (\out -> {#call git_config_file__ondisk#} out str')
 
 -- | Allocate a new configuration object
 --
@@ -77,8 +77,7 @@ addFile (Config c) (ConfigFile f) pr =
 -- Further queries on this config object will access each of the config file
 -- instances in order. Instances with a higher priority will be accessed first.
 addOnDisk :: Config -> String -> Int -> IO GitError
-addOnDisk (Config c) pth pr = do
-  pth' <- newCString pth
+addOnDisk (Config c) pth pr = withCString pth $ \pth' ->
   retEnum $ {#call git_config_add_file_ondisk#} c pth' (fromIntegral pr)
 
 -- | Create a new config instance containing a single on-disk file
@@ -87,8 +86,8 @@ addOnDisk (Config c) pth pr = do
 -- - newConfig
 -- - addOnDisk
 openOnDisk :: String -> IOEitherErr Config
-openOnDisk str = callPeek Config
-  (\out -> {#call git_config_open_ondisk#} out =<< newCString str)
+openOnDisk str = withCString str $ \str' ->
+  callPeek Config (\out -> {#call git_config_open_ondisk#} out str')
 
 -- | Free the configuration and its associated memory and files
 freeConfig :: Config -> IO ()
@@ -96,20 +95,17 @@ freeConfig = {#call git_config_free#} . unwrap
 
 -- | Get the value of an integer config variable.
 configInt :: Config -> String -> IOEitherErr Int
-configInt (Config c) str = do
-  str' <- newCString str
+configInt (Config c) str = withCString str $ \str' ->
   callPeek fromIntegral ({#call git_config_get_int#} c str')
 
 -- | Get the value of an integer config variable.
 configInteger :: Config -> String -> IOEitherErr Integer
-configInteger (Config c) str = do
-  str' <- newCString str
+configInteger (Config c) str = withCString str $ \str' ->
   callPeek fromIntegral ({#call git_config_get_long#} c str')
 
 -- | Get the value of a boolean config variable.
 configBool :: Config -> String -> IO (Either GitError Bool)
-configBool (Config c) str = alloca $ \out -> do
-  str' <- newCString str
+configBool (Config c) str = withCString str $ \str' -> alloca $ \out -> do
   res  <- {#call git_config_get_bool#} c str' out
   retEither res $ fmap (Right . toBool) $ peek out
 
@@ -117,8 +113,7 @@ configBool (Config c) str = alloca $ \out -> do
 --
 -- The string is owned by the variable and should not be freed by the user.
 configString :: Config -> String -> IO (Either GitError String)
-configString (Config c) vn = alloca $ \out -> do
-  vn' <- newCString vn
+configString (Config c) vn = withCString vn $ \vn' -> alloca $ \out -> do
   res <- {#call git_config_get_string#} c vn' out
   retEither res $ fmap Right $ peekCString =<< peek out
 
@@ -139,19 +134,17 @@ setConfigBool conf vn val =
 
 -- | Set the value of a string config variable.
 setConfigString :: Config -> String -> String -> IOCanFail
-setConfigString conf vn val =
-  mConfig {#call git_config_set_string#} conf vn =<< newCString val
+setConfigString conf vn val = withCString val $ \val' ->
+  mConfig {#call git_config_set_string#} conf vn val'
 
 -- | Delete a config variable
 delConfig :: Config -> String -> IOCanFail
-delConfig (Config c) vn = do
-  str <- newCString vn
+delConfig (Config c) vn = withCString vn $ \str ->
   retMaybe =<< {#call git_config_delete#} c str
 
 mConfig :: (CPtr -> CString -> t -> IO CInt) -> Config -> String -> t
         -> IO (Maybe GitError)
-mConfig call (Config c) vn val = do
-  str <- newCString vn
+mConfig call (Config c) vn val = withCString vn $ \str ->
   retMaybe =<< call c str val
 
 -- TODO: foreachConfig :: Config ->

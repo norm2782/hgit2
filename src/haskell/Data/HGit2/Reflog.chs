@@ -36,8 +36,8 @@ readReflog (Reference r) = callPeek Reflog
 --
 -- If there is no reflog file for the given reference yet, it will be created.
 writeReflog :: Reference -> OID -> Signature -> String -> IOCanFail
-writeReflog (Reference r) (OID o) (Signature s) str =
-  retMaybe =<< {#call git_reflog_write#} r o s =<< newCString str
+writeReflog (Reference r) (OID o) (Signature s) str = withCString str $
+  \str' -> retMaybe =<< {#call git_reflog_write#} r o s str'
 
 -- | Get the number of log entries in a reflog
 entryCount :: Reflog -> IO Int

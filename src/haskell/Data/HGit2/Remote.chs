@@ -22,8 +22,8 @@ instance CWrapper HeadArray where
 
 -- | Get the information for a particular remote
 remote :: Config -> String -> IOEitherErr Remote
-remote (Config c) str =
-  callPeek Remote (\out -> {#call git_remote_get#} out c =<< newCString str)
+remote (Config c) str = withCString str $ \str' ->
+  callPeek Remote (\out -> {#call git_remote_get#} out c str')
 
 -- | Get the remote's name
 remoteName :: Remote -> String

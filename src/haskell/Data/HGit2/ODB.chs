@@ -38,8 +38,8 @@ newODB = callPeek ODB {#call git_odb_new#}
 --   as the Objects folder which contains a 'pack/' folder with the
 --   corresponding data
 openODB :: String -> IOEitherErr ODB
-openODB str = callPeek ODB
-  (\out -> {#call git_odb_open#} out =<< newCString str)
+openODB str = withCString str $ \str' ->
+  callPeek ODB (\out -> {#call git_odb_open#} out str')
 
 -- | Add a custom backend to an existing Object DB
 --

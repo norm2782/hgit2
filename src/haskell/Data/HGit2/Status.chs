@@ -45,6 +45,6 @@ foreachStatus (Repository r) f p = do
 
 -- | Get file status for a single file
 fileStatus :: Repository -> String -> IO Int
-fileStatus (Repository r) fl = alloca $ \out -> do
-  _ <- {#call git_status_file#} out r =<< newCString fl
+fileStatus (Repository r) fl = withCString fl $ \loc -> alloca $ \out -> do
+  _ <- {#call git_status_file#} out r loc
   return . fromIntegral =<< peek out

@@ -71,7 +71,7 @@ oTypeToString oty =
 
 -- | Convert a string object type representation to it's git_otype.
 strToOType :: String -> IO OType
-strToOType = (retEnum . {#call git_object_string2type#} =<<) . newCString
+strToOType str = withCString str $ retEnum . {#call git_object_string2type#}
 
 -- | Determine if the given git_otype is a valid loose object type.
 isLoose :: OType -> Bool

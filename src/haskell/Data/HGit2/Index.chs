@@ -53,8 +53,8 @@ idxExtFlags = fromEnum IntentToAdd .|. fromEnum SkipWorkTree
 -- | Create a new bare Git index object as a memory representation of the Git
 -- index file in the provided path, without a repository to back it.
 openIndex :: String -> IOEitherErr Index
-openIndex path = callPeek Index
-  (\out -> {#call git_index_open#} out =<< newCString path)
+openIndex path = withCString path $ \pth ->
+  callPeek Index (\out -> {#call git_index_open#} out pth)
 
 -- | Clear the contents (all the entries) of an index object. This clears the
 -- index object in memory; changes must be manually written to disk for them to
@@ -79,8 +79,8 @@ writeIndex = callRetMaybe {#call git_index_write#}
 -- | Find the first index of any entries which point to given path in the Git
 -- index.
 findIndex :: Index -> String -> IO (Maybe Int)
-findIndex (Index idx) path = do
-  res <- {#call git_index_find#} idx =<< newCString path
+findIndex (Index idx) path = withCString path $ \path' -> do
+  res <- {#call git_index_find#} idx path'
   return $ if res >= 0
              then Just $ fromIntegral res
              else Nothing
@@ -91,8 +91,7 @@ uniqIndex = {#call git_index_uniq#} . unwrap
 
 -- | Add or update an index entry from a file in disk
 addIndex :: Index -> String -> Int -> IO (Maybe GitError)
-addIndex (Index idx) path stage = do
-  pth <- newCString path
+addIndex (Index idx) path stage = withCString path $ \pth ->
   retMaybe =<< {#call git_index_add#} idx pth (fromIntegral stage)
 
 -- | Add or update an index entry from an in-memory struct
@@ -102,8 +101,7 @@ addIndex2 (Index idx) (IndexEntry ie) =
 
 -- | Add (append) an index entry from a file in disk
 appendIndex :: Index -> String -> Int -> IO (Maybe GitError)
-appendIndex (Index idx) path stage = do
-  pth <- newCString path
+appendIndex (Index idx) path stage = withCString path $ \pth ->
   retMaybe =<< {#call git_index_append#} idx pth (fromIntegral stage)
 
 -- | Add (append) an index entry from an in-memory struct
@@ -134,8 +132,8 @@ retIEU = retRes IndexEntryUnMerged
 
 -- | Get an unmerged entry from the index.
 unmergedByPath :: Index -> String -> IO (Maybe IndexEntryUnMerged)
-unmergedByPath (Index idx) path =
-  retIEU =<< {#call git_index_get_unmerged_bypath#} idx =<< newCString path
+unmergedByPath (Index idx) path = withCString path $ \pth ->
+  retIEU =<< {#call git_index_get_unmerged_bypath#} idx pth
 
 -- | Get an unmerged entry from the index.
 unmergedByIndex :: Index -> Int -> IO (Maybe IndexEntryUnMerged)

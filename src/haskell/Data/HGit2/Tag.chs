@@ -61,15 +61,13 @@ tagMessage = unsafePeekStr {#call git_tag_message#}
 -- replaced.
 createTag :: OID -> Repository -> String -> GitObj -> Signature -> String
           -> Bool -> IOCanFail
-createTag (OID o) (Repository r) tg (GitObj g) (Signature s) ms fr = do
-  tag <- newCString tg
-  msg <- newCString ms
+createTag (OID o) (Repository r) tg (GitObj g) (Signature s) ms fr =
+  withCString tg $ \tag -> withCString ms $ \msg ->
   retMaybe =<< {#call git_tag_create#} o r tag g s msg (fromBool fr)
 
 -- | Create a new tag in the repository from a buffer
 createFromBuff :: OID -> Repository -> String -> Bool -> IOCanFail
-createFromBuff (OID o) (Repository r) bf fr = do
-  buf <- newCString bf
+createFromBuff (OID o) (Repository r) bf fr = withCString bf $ \buf ->
   retMaybe =<< {#call git_tag_create_frombuffer#} o r buf (fromBool fr)
 
 -- | Create a new lightweight tag pointing at a target object
@@ -78,14 +76,14 @@ createFromBuff (OID o) (Repository r) bf fr = do
 -- `force` is true and a reference already exists with the given name, it'll be
 -- replaced.
 createLightWeight :: OID -> Repository -> String -> GitObj -> Bool -> IOCanFail
-createLightWeight (OID o) (Repository r) tn (GitObj g) fr = do
-  tag <- newCString tn
+createLightWeight (OID o) (Repository r) tn (GitObj g) fr =
+  withCString tn $ \tag ->
   retMaybe =<< {#call git_tag_create_lightweight#} o r tag g (fromBool fr)
 
 -- | Delete an existing tag reference.
 deleteTag :: Repository -> String -> IOCanFail
-deleteTag (Repository r) tn =
-  retMaybe =<< {#call git_tag_delete#} r =<< newCString tn
+deleteTag (Repository r) tn = withCString tn $ \tag ->
+  retMaybe =<< {#call git_tag_delete#} r tag
 
 -- | Fill a list with all the tags in the Repository
 --
@@ -104,6 +102,5 @@ tagList (StrArray sa) (Repository r) = retMaybe =<< {#call git_tag_list#} sa r
 -- values are owned by the user and should be free'd manually when no longer
 -- needed, using `git_strarray_free`.
 tagListMatch :: StrArray -> String -> Repository -> IOCanFail
-tagListMatch (StrArray s) pt (Repository r) = do
-  pat <- newCString pt
+tagListMatch (StrArray s) pt (Repository r) = withCString pt $ \pat ->
   retMaybe =<< {#call git_tag_list_match#} s pat r

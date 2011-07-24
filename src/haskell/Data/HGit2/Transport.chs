@@ -17,8 +17,8 @@ instance CWrapper Transport where
 
 -- | Get the appropriate transport for an URL.
 new :: String -> IOEitherErr Transport
-new url = callPeek Transport
-  (\out -> {#call git_transport_new#} out =<< newCString url)
+new u = withCString u $ \url -> callPeek Transport
+  (\out -> {#call git_transport_new#} out url)
 
 connect :: Transport -> Int -> IOCanFail
 connect (Transport t) n =
