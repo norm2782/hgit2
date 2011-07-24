@@ -113,7 +113,8 @@ readPrefix (ODB o) (OID i) n = callPeek ODBObj
 GIT_EXTERN(int) git_odb_read_header(size_t *len_p, git_otype *type_p, git_odb *db, const git_oid *id);
 TODO
 -}
-readHeader = undefined
+readHeader :: ODB -> OID -> IOEitherErr OType
+readHeader (ODB o) (OID i) = undefined
 
 -- | Determine if the given object can be found in the object database.
 exists :: ODB -> OID -> IO Bool

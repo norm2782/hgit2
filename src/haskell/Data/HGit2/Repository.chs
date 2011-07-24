@@ -9,7 +9,6 @@ import Data.HGit2.Git2
 import Data.HGit2.Index
 import Data.HGit2.ODB
 import Data.HGit2.Config
-import Data.Maybe
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
@@ -71,13 +70,12 @@ openRepoODB dir (ODB db) idxFile workTree = do
 --
 -- The method will automatically detect if the repository is bare (if there is
 -- a repository).
--- TODO : The undefined is a size_t....
-discover :: String -> Bool -> String -> IOEitherErr String
-discover startPath acrossFs ceilingDirs = alloca $ \out -> do
+discover :: CSize -> String -> Bool -> String -> IOEitherErr String
+discover sz startPath acrossFs ceilingDirs = alloca $ \out -> do
   spStr  <- newCString startPath
   cdsStr <- newCString ceilingDirs
-  res    <- {#call git_repository_discover#} out undefined
-                                             spStr (fromBool acrossFs) cdsStr
+  res    <- {#call git_repository_discover#} out (fromIntegral sz) spStr
+                                             (fromBool acrossFs) cdsStr
   eitherPeekStr out id res
 
 -- | Get the object database behind a Git repository
