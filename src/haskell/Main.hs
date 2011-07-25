@@ -22,7 +22,10 @@ import Data.HGit2.Transport
 import System.Directory
 
 pth :: String
-pth = "/Users/norm2782/src/hgit2/test/.git"
+pth = pth' ++ "/.git"
+
+pth' :: String
+pth' = "/Users/norm2782/src/hgit2/test"
 
 -- TODO: Error when repo exists:
 -- No repo found: GitEoverflow
@@ -33,27 +36,32 @@ main = do
   disc <- discover pth False ""
   case disc of
     Left  err -> do putStrLn $ "Error or no repo found: " ++ show err
-                    putStrLn $ "Initializing new repo in " ++ pth
-                    inrp <- initRepo pth False
+                    putStrLn $ "Initializing new repo in " ++ pth'
+                    inrp <- initRepo pth' False
                     case inrp of
-                      Left  err  -> putStrLn $ "Error initializing: " ++ show err
-                      Right repo -> testRepo repo
+                      Left  err -> putStrLn $ "Error initializing: " ++ show err
+                      Right rep -> testRepo rep
     Right pth -> do repo <- openRepo pth
                     case repo of
                       Left  err -> putStrLn $ "Error opening repo: " ++ show err
-                      Right repo -> testRepo repo
+                      Right rep -> testRepo rep
 
 msg :: Show a => String -> IO a -> IO ()
 msg str rhs = putStrLn . (str ++) . show =<< rhs
 
+msg' :: String -> IO String -> IO ()
+msg' str rhs = putStrLn . (str ++) =<< rhs
+
 testRepo :: Repository -> IO ()
 testRepo repo = do msg "Checking whether repo is empty... " (isEmpty repo)
-                   msg "Repository path... " (path repo GitRepoPath)
+                   msg' "Repository path... " (path repo GitRepoPath)
                    putStrLn "Discovering again..."
                    disc <- discover pth False ""
-                   case disc of
-                     Left  err -> putStrLn $ "Discover error: "  ++ show err
-                     Right pth -> putStrLn $ "Discover OK: " ++ pth
+                   putStrLn $ case disc of
+                                Left  err -> "Discover error: " ++ show err
+                                Right pth -> "Discover OK: " ++ pth
+                   odbPth <- path repo GitRepoPathOdb
+                   putStrLn $ "ODB directory: " ++ odbPth
                    putStr "Removing repo... "
                    removeDirectoryRecursive pth
                    putStrLn "OK"
