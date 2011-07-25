@@ -46,24 +46,27 @@ writeReflog (Reference rfp) (OID ofp) (Signature sfp) str =
 
 -- | Get the number of log entries in a reflog
 entryCount :: Reflog -> IO Int
-entryCount = undefined -- callRetNum {#call git_reflog_entrycount#}
+entryCount (Reflog rfp) =
+  withForeignPtr rfp $ retNum . {#call git_reflog_entrycount#}
 
 -- | Lookup an entry by its index
 entryByIndex :: Reflog -> Int -> IO (Maybe ReflogEntry)
 entryByIndex (Reflog rfp) n =
-  withForeignPtr rfp $ \r ->
-  undefined -- ReflogEntry ({#call git_reflog_entry_byindex#} r (fromIntegral n))
-
-{- unsafeCallStr :: CWrapper a => (CPtr -> IO CString) -> a -> String-}
-unsafeCallStr call = undefined -- unsafePerformIO . (peekCString =<<) . call . unwrap
+  withForeignPtr rfp $ \r -> do
+  ptr <- mkFPtr =<< {#call git_reflog_entry_byindex#} r (fromIntegral n)
+  retRes ReflogEntry ptr
 
 -- | Get the old oid
 oldOID :: ReflogEntry -> String
-oldOID = unsafeCallStr {#call unsafe git_reflog_entry_oidold#}
+oldOID (ReflogEntry rfp) = unsafePerformIO $
+  withForeignPtr rfp $ \r ->
+  peekCString =<< {#call unsafe git_reflog_entry_oidold#} r
 
 -- | Get the new oid
 newOID :: ReflogEntry -> String
-newOID = unsafeCallStr {#call unsafe git_reflog_entry_oidnew#}
+newOID (ReflogEntry rfp) = unsafePerformIO $
+  withForeignPtr rfp $ \r ->
+  peekCString =<< {#call unsafe git_reflog_entry_oidnew#} r
 
 -- | Get the committer of this entry
 committer :: ReflogEntry -> Signature
@@ -75,5 +78,7 @@ committer (ReflogEntry rfp) = unsafePerformIO $
 
 -- | Get the log msg
 entryMsg :: ReflogEntry -> String
-entryMsg = unsafeCallStr {#call unsafe git_reflog_entry_msg#}
+entryMsg (ReflogEntry rfp) = unsafePerformIO $
+  withForeignPtr rfp $ \r ->
+  peekCString =<< {#call unsafe git_reflog_entry_msg#} r
 
