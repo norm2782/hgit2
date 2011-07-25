@@ -77,12 +77,13 @@ openRepoODB dir (ODB dfp) idxFile workTree =
 --
 -- The method will automatically detect if the repository is bare (if there is
 -- a repository).
-discover :: CSize -> String -> Bool -> String -> IOEitherErr String
-discover sz startPath acrossFs ceilingDirs = alloca $ \out ->
+-- TODO: Size is not calculated correctly
+discover :: String -> Bool -> String -> IOEitherErr String
+discover startPath acrossFs ceilingDirs = alloca $ \out ->
   withCString startPath $ \spStr ->
   withCString ceilingDirs $ \cdsStr -> do
-  res <- {#call git_repository_discover#} out (fromIntegral sz) spStr
-                                          (fromBool acrossFs) cdsStr
+  res <- {#call git_repository_discover#} out (fromIntegral $ (length startPath * 2))
+                                          spStr (fromBool acrossFs) cdsStr
   eitherPeekStr out id res
 
 -- | Get the object database behind a Git repository
@@ -109,8 +110,8 @@ index (Repository fp) =
   callPeek Index (\out -> {#call git_repository_index#} out r)
 
 -- | Creates a new Git repository in the given folder.
-init :: String -> Bool -> IOEitherErr Repository
-init pth bare =
+initRepo :: String -> Bool -> IOEitherErr Repository
+initRepo pth bare =
   withCString pth $ \pstr ->
   callPeek Repository
             (\out -> {#call git_repository_init#} out pstr (fromBool bare))

@@ -19,17 +19,32 @@ import Data.HGit2.Revwalk
 import Data.HGit2.Tag
 import Data.HGit2.Remote
 import Data.HGit2.Transport
+import System.Directory
 
+pth :: String
+pth = "/Users/norm2782/src/hgit2/test/.git"
 
+-- TODO: Error when repo exists:
+-- No repo found: GitEoverflow
+-- Due to discover
 main :: IO ()
 main = do
-  putStrLn "Opening repo in pwd"
-  r <- openRepo "/Users/norm2782/src/hgit2/.git"
-  putStrLn "Opened repo"
-  case r of
-    (Left err)   -> putStrLn $ "Error opening repo: " ++ show err
-    (Right repo) -> do msg "Checking whether repo is empty... " (isEmpty repo)
-                       msg "Repository path... " (path repo GitRepoPath)
-
+  putStrLn $ "Looking for repo in " ++ pth
+  disc <- discover pth False ""
+  case disc of
+    Left  err -> do putStrLn $ "Error or no repo found: " ++ show err
+                    putStrLn $ "Initializing new repo in " ++ pth
+                    inrp <- initRepo pth False
+                    case inrp of
+                      Left  err  -> putStrLn $ "Error initializing: " ++ show err
+                      Right repo -> testRepo repo
+    Right pth -> do repo <- openRepo pth
+                    case repo of
+                      Left  err -> putStrLn $ "Error opening repo: " ++ show err
+                      Right repo -> testRepo repo
 
 msg str rhs = putStrLn . (str ++) . show =<< rhs
+
+testRepo repo = do msg "Checking whether repo is empty... " (isEmpty repo)
+                   msg "Repository path... " (path repo GitRepoPath)
+                   {- removeDirectoryRecursive pth-}
