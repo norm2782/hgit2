@@ -43,8 +43,17 @@ main = do
                       Left  err -> putStrLn $ "Error opening repo: " ++ show err
                       Right repo -> testRepo repo
 
+msg :: Show a => String -> IO a -> IO ()
 msg str rhs = putStrLn . (str ++) . show =<< rhs
 
+testRepo :: Repository -> IO ()
 testRepo repo = do msg "Checking whether repo is empty... " (isEmpty repo)
                    msg "Repository path... " (path repo GitRepoPath)
-                   {- removeDirectoryRecursive pth-}
+                   putStrLn "Discovering again..."
+                   disc <- discover pth False ""
+                   case disc of
+                     Left  err -> putStrLn $ "Discover error: "  ++ show err
+                     Right pth -> putStrLn $ "Discover OK: " ++ pth
+                   putStr "Removing repo... "
+                   removeDirectoryRecursive pth
+                   putStrLn "OK"
