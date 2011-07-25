@@ -29,25 +29,29 @@ remote (Config cfp) str =
 
 -- | Get the remote's name
 remoteName :: Remote -> String
-remoteName = undefined -- unsafePeekStr {#call git_remote_name#}
+remoteName (Remote rfp) = unsafePerformIO $
+  withForeignPtr rfp $ \r ->
+  peekCString =<< {#call git_remote_name#} r
 
 -- | Get the remote's url
 remoteURL :: Remote -> String
-remoteURL = undefined --unsafePeekStr {#call git_remote_url#}
+remoteURL (Remote rfp) = unsafePerformIO $
+  withForeignPtr rfp $ \r ->
+  peekCString =<< {#call git_remote_url#} r
 
 -- | Get the fetch refspec
 remoteRefSpec :: Remote -> IO (Maybe RefSpec)
 remoteRefSpec (Remote rfp) =
-  withForeignPtr rfp $ \r ->
-  undefined
-  {- retRes' RefSpec $ {#call git_remote_fetchspec#} r-}
+  withForeignPtr rfp $ \r -> do
+  ptr <- mkFPtr =<< {#call git_remote_fetchspec#} r
+  retRes RefSpec ptr
 
 -- | Get the push refspec
 pushSpec :: Remote -> IO (Maybe RefSpec)
-pushSpec  (Remote rfp) =
-  withForeignPtr rfp $ \r ->
-  undefined
-  {- retRes' RefSpec $ {#call git_remote_pushspec#} r-}
+pushSpec (Remote rfp) =
+  withForeignPtr rfp $ \r -> do
+  ptr <- mkFPtr =<< {#call git_remote_pushspec#} r
+  retRes RefSpec ptr
 
 -- | Open a connection to a remote
 --
