@@ -53,7 +53,8 @@ idxExtFlags = fromEnum IntentToAdd .|. fromEnum SkipWorkTree
 -- | Create a new bare Git index object as a memory representation of the Git
 -- index file in the provided path, without a repository to back it.
 openIndex :: String -> IOEitherErr Index
-openIndex path = withCString path $ \pth ->
+openIndex path =
+  withCString path $ \pth ->
   callPeek Index (\out -> {#call git_index_open#} out pth)
 
 -- | Clear the contents (all the entries) of an index object. This clears the
@@ -66,12 +67,16 @@ clearIndex (Index ifp) =
 -- | Update the contents of an existing index object in memory by reading from
 -- the hard disk.
 readIndex :: Index -> IOCanFail
-readIndex = undefined -- callRetMaybe {#call git_index_read#}
+readIndex (Index ifp) =
+  withForeignPtr ifp $ \i ->
+  retMaybe =<< {#call git_index_read#} i
 
 -- | Write an existing index object from memory back to disk using an atomic
 -- file lock.
 writeIndex :: Index -> IOCanFail
-writeIndex = undefined -- callRetMaybe {#call git_index_write#}
+writeIndex (Index ifp) =
+  withForeignPtr ifp $ \i ->
+  retMaybe =<< {#call git_index_write#} i
 
 -- | Find the first index of any entries which point to given path in the Git
 -- index.
@@ -126,35 +131,37 @@ remove (Index ifp) n =
 -- | Get a pointer to one of the entries in the index
 getIndex :: Index -> Int -> IO (Maybe IndexEntry)
 getIndex (Index ifp) n =
-  withForeignPtr ifp $ \idx ->
-  undefined
-  {- retRes IndexEntry =<< {#call git_index_get#} idx (fromIntegral n)-}
+  withForeignPtr ifp $ \idx -> do
+  res <- {#call git_index_get#} idx (fromIntegral n)
+  retRes IndexEntry =<< mkFPtr res
 
 -- | Get the count of entries currently in the index
 entryCount :: Index -> IO Int
-entryCount = undefined -- callRetNum {#call git_index_entrycount#}
+entryCount (Index ifp) =
+  withForeignPtr ifp $ retNum . {#call git_index_entrycount#}
 
 -- | Get the count of unmerged entries currently in the index
 entryCountUnMerged :: Index -> IO Int
-entryCountUnMerged = undefined -- callRetNum {#call git_index_entrycount_unmerged#}
+entryCountUnMerged  (Index ifp) =
+  withForeignPtr ifp $ retNum . {#call git_index_entrycount_unmerged#}
 
-retIEU :: CPtr -> IO (Maybe IndexEntryUnMerged)
-retIEU = undefined -- retRes IndexEntryUnMerged
+retIEU :: Ptr () -> IO (Maybe IndexEntryUnMerged)
+retIEU ptr = retRes IndexEntryUnMerged =<< mkFPtr ptr
 
 -- | Get an unmerged entry from the index.
 unmergedByPath :: Index -> String -> IO (Maybe IndexEntryUnMerged)
 unmergedByPath (Index ifp) path =
   withForeignPtr ifp $ \idx ->
   withCString path $ \pth ->
-  undefined
-    {- retIEU =<< {#call git_index_get_unmerged_bypath#} idx pth-}
+  retIEU =<< {#call git_index_get_unmerged_bypath#} idx pth
 
 -- | Get an unmerged entry from the index.
 unmergedByIndex :: Index -> Int -> IO (Maybe IndexEntryUnMerged)
 unmergedByIndex (Index ifp) n =
   withForeignPtr ifp $ \idx ->
-  undefined -- retIEU =<< {#call git_index_get_unmerged_byindex#} idx (fromIntegral n)
+  retIEU =<< {#call git_index_get_unmerged_byindex#} idx (fromIntegral n)
 
 -- | Return the stage number from a git index entry
 entryStage :: IndexEntry -> IO Int
-entryStage = undefined -- callRetNum {#call git_index_entry_stage#}
+entryStage (IndexEntry ifp) =
+  withForeignPtr ifp $ retNum . {#call git_index_entry_stage#}
