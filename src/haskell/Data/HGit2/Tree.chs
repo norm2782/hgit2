@@ -80,7 +80,7 @@ entryToObj :: Repository -> TreeEntry -> IOEitherErr GitObj
 entryToObj (Repository rfp) (TreeEntry tfp) =
   withForeignPtr rfp $ \r ->
   withForeignPtr tfp $ \t ->
-  callPeek' GitObj (\out -> {#call git_tree_entry_2object#} out r t)
+  callPeek GitObj (\out -> {#call git_tree_entry_2object#} out r t)
 
 -- Write a tree to the ODB from the index file
 createFromIndex :: OID -> Index -> IO (Maybe GitError)

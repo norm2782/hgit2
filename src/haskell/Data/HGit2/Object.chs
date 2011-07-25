@@ -23,7 +23,7 @@ lookupObj :: Repository -> OID -> OType -> IOEitherErr GitObj
 lookupObj (Repository fp) (OID ofp) oty =
   withForeignPtr fp $ \r ->
   withForeignPtr ofp $ \o ->
-  callPeek' GitObj (\out -> {#call git_object_lookup#} out r o
+  callPeek GitObj (\out -> {#call git_object_lookup#} out r o
     (fromIntegral $ fromEnum oty))
 
 -- | Lookup a reference to one of the objects in a repostory, given a prefix of
@@ -33,7 +33,7 @@ lookupObjPref :: Repository -> OID -> Int -> OType -> IOEitherErr GitObj
 lookupObjPref (Repository fp) (OID ofp) n oty =
   withForeignPtr fp $ \r ->
   withForeignPtr ofp $ \o ->
-  callPeek' GitObj (\out -> {#call git_object_lookup_prefix#} out r o
+  callPeek GitObj (\out -> {#call git_object_lookup_prefix#} out r o
     (fromIntegral n) (fromIntegral $ fromEnum oty))
 
 -- | Get the id (SHA1) of a repository object

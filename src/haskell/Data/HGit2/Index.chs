@@ -54,7 +54,7 @@ idxExtFlags = fromEnum IntentToAdd .|. fromEnum SkipWorkTree
 -- index file in the provided path, without a repository to back it.
 openIndex :: String -> IOEitherErr Index
 openIndex path = withCString path $ \pth ->
-  callPeek' Index (\out -> {#call git_index_open#} out pth)
+  callPeek Index (\out -> {#call git_index_open#} out pth)
 
 -- | Clear the contents (all the entries) of an index object. This clears the
 -- index object in memory; changes must be manually written to disk for them to

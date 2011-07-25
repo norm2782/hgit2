@@ -27,7 +27,7 @@ instance CWrapper ODBObj where
 -- Before the ODB can be used for read/writing, a custom database backend must
 -- be manually added using `git_odb_add_backend()`
 newODB :: IOEitherErr ODB
-newODB = callPeek' ODB {#call git_odb_new#}
+newODB = callPeek ODB {#call git_odb_new#}
 
 -- Create a new object database and automatically add the two default backends:
 --
@@ -40,7 +40,7 @@ newODB = callPeek' ODB {#call git_odb_new#}
 openODB :: String -> IOEitherErr ODB
 openODB str =
   withCString str $ \str' ->
-  callPeek' ODB (\out -> {#call git_odb_open#} out str')
+  callPeek ODB (\out -> {#call git_odb_open#} out str')
 
 -- | Add a custom backend to an existing Object DB
 --
@@ -84,7 +84,7 @@ readODB :: ODB -> OID -> IOEitherErr ODBObj
 readODB (ODB ofp) (OID ifp) =
   withForeignPtr ofp $ \o ->
   withForeignPtr ifp $ \i ->
-  callPeek' ODBObj (\out -> {#call git_odb_read#} out o i)
+  callPeek ODBObj (\out -> {#call git_odb_read#} out o i)
 
 -- | Read an object from the database, given a prefix of its identifier.
 --
@@ -100,7 +100,7 @@ readPrefix :: ODB -> OID -> Int -> IOEitherErr ODBObj
 readPrefix (ODB ofp) (OID ifp) n =
   withForeignPtr ofp $ \o ->
   withForeignPtr ifp $ \i ->
-  callPeek' ODBObj (\out -> {#call git_odb_read_prefix#} out o i (fromIntegral n))
+  callPeek ODBObj (\out -> {#call git_odb_read_prefix#} out o i (fromIntegral n))
 
 {-
 /**
@@ -193,7 +193,7 @@ TODO: Finish this
 openWStream :: ODB -> OType -> IOEitherErr ODBStream
 openWStream (ODB ofp) oty =
   withForeignPtr ofp $ \o ->
-  callPeek' ODBStream (\out -> {#call git_odb_open_wstream#} out o undefined
+  callPeek ODBStream (\out -> {#call git_odb_open_wstream#} out o undefined
                                  (fromIntegral $ fromEnum oty))
 
 -- | Open a stream to read an object from the ODB
@@ -215,7 +215,7 @@ openRStream :: ODB -> OID -> IOEitherErr ODBStream
 openRStream (ODB ofp) (OID ifp) =
   withForeignPtr ofp $ \o ->
   withForeignPtr ifp $ \i ->
-  callPeek' ODBStream (\out -> {#call git_odb_open_rstream#} out o i)
+  callPeek ODBStream (\out -> {#call git_odb_open_rstream#} out o i)
 
 {-
 /**

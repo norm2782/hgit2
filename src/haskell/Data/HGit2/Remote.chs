@@ -25,7 +25,7 @@ remote :: Config -> String -> IOEitherErr Remote
 remote (Config cfp) str =
   withForeignPtr cfp $ \c ->
   withCString str $ \str' ->
-  callPeek' Remote (\out -> {#call git_remote_get#} out c str')
+  callPeek Remote (\out -> {#call git_remote_get#} out c str')
 
 -- | Get the remote's name
 remoteName :: Remote -> String

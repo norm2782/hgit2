@@ -35,7 +35,7 @@ instance CWrapper RevWalk where
 newWalk :: Repository -> IOEitherErr RevWalk
 newWalk (Repository rfp) =
   withForeignPtr rfp $ \r ->
-  callPeek' RevWalk (\out -> {#call git_revwalk_new#} out r)
+  callPeek RevWalk (\out -> {#call git_revwalk_new#} out r)
 
 -- | Reset the revision walker for reuse.
 --

@@ -59,7 +59,7 @@ author = sigCall {#call unsafe git_commit_author#}
 tree :: Commit -> IOEitherErr Tree
 tree (Commit cfp) =
   withForeignPtr cfp $ \c ->
-  callPeek' Tree (\out -> {#call git_commit_tree#} out c)
+  callPeek Tree (\out -> {#call git_commit_tree#} out c)
 
 parentCount :: Commit -> IO Int
 parentCount = undefined -- wrapToMNum {#call git_commit_parentcount#}
@@ -67,7 +67,7 @@ parentCount = undefined -- wrapToMNum {#call git_commit_parentcount#}
 parent :: Commit -> Int -> IOEitherErr Commit
 parent (Commit cfp) n =
   withForeignPtr cfp $ \c ->
-  callPeek' Commit (\out -> {#call git_commit_parent#} out c (fromIntegral n))
+  callPeek Commit (\out -> {#call git_commit_parent#} out c (fromIntegral n))
 
 parentOID :: Commit -> Int -> IO (Maybe OID)
 parentOID (Commit cfp) n =

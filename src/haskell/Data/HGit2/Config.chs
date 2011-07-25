@@ -37,7 +37,7 @@ findGlobalConfig = alloca $ \pth -> do
 
 -- | Open the global configuration file
 openGlobalConfig :: IOEitherErr Config
-openGlobalConfig = callPeek' Config {#call git_config_open_global#}
+openGlobalConfig = callPeek Config {#call git_config_open_global#}
 
 -- | Create a configuration file backend for ondisk files
 --
@@ -46,14 +46,14 @@ openGlobalConfig = callPeek' Config {#call git_config_open_global#}
 -- query it for configuration variables.
 createOnDisk :: String -> IOEitherErr ConfigFile
 createOnDisk str = withCString str $ \str' ->
-  callPeek' ConfigFile (\out -> {#call git_config_file__ondisk#} out str')
+  callPeek ConfigFile (\out -> {#call git_config_file__ondisk#} out str')
 
 -- | Allocate a new configuration object
 --
 -- This object is empty, so you have to add a file to it before you can do
 -- anything with it.
 newConfig :: IOEitherErr Config
-newConfig = callPeek' Config {#call git_config_new#}
+newConfig = callPeek Config {#call git_config_new#}
 
 -- | Add a generic config file instance to an existing config
 --
@@ -92,7 +92,7 @@ addOnDisk (Config cfp) pth pr =
 openOnDisk :: String -> IOEitherErr Config
 openOnDisk str =
   withCString str $ \str' ->
-  callPeek' Config (\out -> {#call git_config_open_ondisk#} out str')
+  callPeek Config (\out -> {#call git_config_open_ondisk#} out str')
 
 -- | Get the value of an integer config variable.
 configInt :: Config -> String -> IOEitherErr Int
@@ -100,7 +100,7 @@ configInt (Config cfp) str =
   withForeignPtr cfp $ \c ->
   withCString str $ \str' ->
   undefined
-  {- callPeek' fromIntegral ({#call git_config_get_int#} c str')-}
+  {- callPeek fromIntegral ({#call git_config_get_int#} c str')-}
 
 -- | Get the value of an integer config variable.
 configInteger :: Config -> String -> IOEitherErr Integer
@@ -108,7 +108,7 @@ configInteger (Config cfp) str =
   withForeignPtr cfp $ \c ->
   withCString str $ \str' ->
   undefined
-  {- callPeek' fromIntegral ({#call git_config_get_long#} c str')-}
+  {- callPeek fromIntegral ({#call git_config_get_long#} c str')-}
 
 -- | Get the value of a boolean config variable.
 configBool :: Config -> String -> IO (Either GitError Bool)

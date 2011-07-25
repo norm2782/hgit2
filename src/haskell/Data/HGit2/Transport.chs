@@ -19,7 +19,7 @@ instance CWrapper Transport where
 new :: String -> IOEitherErr Transport
 new u =
   withCString u $ \url ->
-  callPeek' Transport (\out -> {#call git_transport_new#} out url)
+  callPeek Transport (\out -> {#call git_transport_new#} out url)
 
 connect :: Transport -> Int -> IOCanFail
 connect (Transport tfp) n =

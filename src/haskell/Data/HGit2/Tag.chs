@@ -34,7 +34,7 @@ tagID = undefined -- callRetCons {#call git_tag_id#} OID
 target :: Tag -> IOEitherErr Target
 target (Tag tfp) =
   withForeignPtr tfp $ \t ->
-  callPeek' Target (\out -> {#call git_tag_target#} out t)
+  callPeek Target (\out -> {#call git_tag_target#} out t)
 
 -- | Get the OID of the tagged object of a tag
 targetOID :: Tag -> IO OID

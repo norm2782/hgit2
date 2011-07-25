@@ -31,7 +31,7 @@ instance CWrapper ReflogEntry where
 readReflog :: Reference -> IOEitherErr Reflog
 readReflog (Reference rfp) =
   withForeignPtr rfp $ \r ->
-  callPeek' Reflog (\out -> {#call git_reflog_read#} out r)
+  callPeek Reflog (\out -> {#call git_reflog_read#} out r)
 
 -- | Write a new reflog for the given reference
 --

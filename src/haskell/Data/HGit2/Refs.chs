@@ -26,7 +26,7 @@ lookupRef :: Repository -> String -> IOEitherErr Reference
 lookupRef (Repository fp) str =
   withForeignPtr fp $ \r ->
     withCString str $ \str' ->
-    callPeek' Reference (\out -> {#call git_reference_lookup#} out r str')
+    callPeek Reference (\out -> {#call git_reference_lookup#} out r str')
 
 -- | Create a new symbolic reference.
 --
@@ -42,7 +42,7 @@ createSymRef (Repository fp) n t f =
   withForeignPtr fp $ \r ->
     withCString n $ \nm ->
     withCString t $ \tg ->
-    callPeek' Reference (\out -> {#call git_reference_create_symbolic#} out r nm
+    callPeek Reference (\out -> {#call git_reference_create_symbolic#} out r nm
                                                                tg (fromBool f))
 
 -- | Create a new object id reference.
@@ -58,7 +58,7 @@ createOID :: Repository -> String -> OID -> Bool -> IOEitherErr Reference
 createOID (Repository rfp) n (OID ifp) f =
   withForeignPtr rfp $ \r ->
   withForeignPtr ifp $ \i ->
-    withCString n $ \ns -> callPeek' Reference
+    withCString n $ \ns -> callPeek Reference
     (\out -> {#call git_reference_create_oid#} out r ns i (fromBool f))
 
 -- | Get the OID pointed to by a reference.
@@ -102,7 +102,7 @@ refName (Reference rfp) =
 resolveRef :: Reference -> IOEitherErr Reference
 resolveRef (Reference rfp) =
   withForeignPtr rfp $ \r ->
-  callPeek' Reference (\out -> {#call git_reference_resolve#} out r)
+  callPeek Reference (\out -> {#call git_reference_resolve#} out r)
 
 -- | Get the repository where a reference resides
 refOwner :: Reference -> IO Repository

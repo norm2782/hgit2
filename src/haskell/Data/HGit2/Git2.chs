@@ -35,7 +35,7 @@ retRes con fp = withForeignPtr fp $ return . ret
   where ret res | res == nullPtr = Nothing
                 | otherwise      = Just $ con fp
 
-{- retRes' :: Monad m => (Ptr a -> b) -> m (Ptr a) -> m (Maybe b)-}
+retRes' :: (Ptr b -> a) -> IO (ForeignPtr b) -> IO (Maybe a)
 retRes' con ptr = do
   fp <- ptr
   withForeignPtr fp $ return . retRes''
@@ -76,12 +76,9 @@ retEnum a = return . toEnum . fromIntegral =<< a
 {- callRetMaybe :: CWrapper a => (CPtr -> IO CInt) -> a -> IOCanFail-}
 {- callRetMaybe call = (retMaybe =<<) . call . unwrap-}
 
-{- callPeek :: Storable b => (b -> a) -> (Ptr b -> IO CInt) -> IOEitherErr a-}
-{- callPeek con call = alloca $ \out -> eitherPeek out con =<< call out-}
-
-callPeek' :: (ForeignPtr a1 -> a) -> (Ptr (Ptr a1) -> IO CInt)
-          -> IO (Either GitError a)
-callPeek' con call = alloca $ \out -> eitherPeek' out con =<< call out
+callPeek :: (ForeignPtr a1 -> a) -> (Ptr (Ptr a1) -> IO CInt)
+         -> IO (Either GitError a)
+callPeek con call = alloca $ \out -> eitherPeek' out con =<< call out
 
 eitherPeek' :: Ptr (Ptr a1) -> (ForeignPtr a1 -> a) -> CInt -> IOEitherErr a
 eitherPeek' ptr = eitherCon (newForeignPtr finalizerFree =<< peek ptr)
@@ -91,3 +88,6 @@ eitherPeek' ptr = eitherCon (newForeignPtr finalizerFree =<< peek ptr)
 
 mkFPtr :: Ptr a -> IO (ForeignPtr a)
 mkFPtr = newForeignPtr finalizerFree
+
+unEnum :: (Enum a, Integral i) => a -> i
+unEnum = fromIntegral . fromEnum
