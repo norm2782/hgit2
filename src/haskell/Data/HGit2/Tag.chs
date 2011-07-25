@@ -26,33 +26,36 @@ instance CWrapper Target where
 
 -- | Get the id of a tag.
 tagID :: Tag -> IO OID
-tagID = callRetCons {#call git_tag_id#} OID
+tagID = undefined -- callRetCons {#call git_tag_id#} OID
 
 -- | Get the tagged object of a tag
 --
 -- This method performs a repository lookup for the given object and returns it
 target :: Tag -> IOEitherErr Target
-target (Tag t) = callPeek Target (\out -> {#call git_tag_target#} out t)
+target (Tag tfp) =
+  withForeignPtr tfp $ \t ->
+  callPeek' Target (\out -> {#call git_tag_target#} out t)
 
 -- | Get the OID of the tagged object of a tag
 targetOID :: Tag -> IO OID
-targetOID = callRetCons {#call git_tag_target_oid#} OID
+targetOID = undefined -- callRetCons {#call git_tag_target_oid#} OID
 
 -- | Get the type of a tag's tagged object
 tagType :: Tag -> OType
-tagType = unsafePerformIO . retEnum . {#call git_tag_type#} . unwrap
+tagType (Tag tfp) = unsafePerformIO $
+  retEnum $ withForeignPtr tfp $ {#call git_tag_type#}
 
 -- | Get the name of a tag
 tagName :: Tag -> String
-tagName = unsafePeekStr {#call git_tag_name#}
+tagName = undefined -- unsafePeekStr {#call git_tag_name#}
 
 -- | Get the tagger (author) of a tag
 tagger :: Tag -> Signature
-tagger = unsafePerformIO . callRetCons {#call git_tag_tagger#} Signature
+tagger = undefined -- unsafePerformIO . callRetCons {#call git_tag_tagger#} Signature
 
 -- | Get the message of a tag
 tagMessage :: Tag -> String
-tagMessage = unsafePeekStr {#call git_tag_message#}
+tagMessage = undefined -- unsafePeekStr {#call git_tag_message#}
 
 -- | Create a new tag in the repository from an object
 --
@@ -61,14 +64,22 @@ tagMessage = unsafePeekStr {#call git_tag_message#}
 -- replaced.
 createTag :: OID -> Repository -> String -> GitObj -> Signature -> String
           -> Bool -> IOCanFail
-createTag (OID o) (Repository r) tg (GitObj g) (Signature s) ms fr =
-  withCString tg $ \tag -> withCString ms $ \msg ->
-  retMaybe =<< {#call git_tag_create#} o r tag g s msg (fromBool fr)
+createTag (OID ofp) (Repository rfp) tg (GitObj gfp) (Signature sfp) ms fr =
+  withForeignPtr ofp $ \o ->
+  withForeignPtr rfp $ \r ->
+  withForeignPtr gfp $ \g ->
+  withForeignPtr sfp $ \s ->
+  withCString tg $ \tag ->
+  withCString ms $ \msg ->
+  undefined -- retMaybe =<< {#call git_tag_create#} o r tag g s msg (fromBool fr)
 
 -- | Create a new tag in the repository from a buffer
 createFromBuff :: OID -> Repository -> String -> Bool -> IOCanFail
-createFromBuff (OID o) (Repository r) bf fr = withCString bf $ \buf ->
-  retMaybe =<< {#call git_tag_create_frombuffer#} o r buf (fromBool fr)
+createFromBuff (OID ofp) (Repository rfp) bf fr =
+  withForeignPtr ofp $ \o ->
+  withForeignPtr rfp $ \r ->
+  withCString bf $ \buf ->
+  undefined -- retMaybe =<< {#call git_tag_create_frombuffer#} o r buf (fromBool fr)
 
 -- | Create a new lightweight tag pointing at a target object
 --
@@ -78,12 +89,13 @@ createFromBuff (OID o) (Repository r) bf fr = withCString bf $ \buf ->
 createLightWeight :: OID -> Repository -> String -> GitObj -> Bool -> IOCanFail
 createLightWeight (OID o) (Repository r) tn (GitObj g) fr =
   withCString tn $ \tag ->
-  retMaybe =<< {#call git_tag_create_lightweight#} o r tag g (fromBool fr)
+  undefined -- retMaybe =<< {#call git_tag_create_lightweight#} o r tag g (fromBool fr)
 
 -- | Delete an existing tag reference.
 deleteTag :: Repository -> String -> IOCanFail
-deleteTag (Repository r) tn = withCString tn $ \tag ->
-  retMaybe =<< {#call git_tag_delete#} r tag
+deleteTag (Repository r) tn =
+  withCString tn $ \tag ->
+  undefined --retMaybe =<< {#call git_tag_delete#} r tag
 
 -- | Fill a list with all the tags in the Repository
 --
@@ -91,7 +103,8 @@ deleteTag (Repository r) tn = withCString tn $ \tag ->
 -- values are owned by the user and should be free'd manually when no longer
 -- needed, using `git_strarray_free`.
 tagList :: StrArray -> Repository -> IOCanFail
-tagList (StrArray sa) (Repository r) = retMaybe =<< {#call git_tag_list#} sa r
+tagList (StrArray sa) (Repository r) = 
+  undefined -- retMaybe =<< {#call git_tag_list#} sa r
 
 -- | Fill a list with all the tags in the Repository which name match a defined
 -- pattern
@@ -102,5 +115,6 @@ tagList (StrArray sa) (Repository r) = retMaybe =<< {#call git_tag_list#} sa r
 -- values are owned by the user and should be free'd manually when no longer
 -- needed, using `git_strarray_free`.
 tagListMatch :: StrArray -> String -> Repository -> IOCanFail
-tagListMatch (StrArray s) pt (Repository r) = withCString pt $ \pat ->
-  retMaybe =<< {#call git_tag_list_match#} s pat r
+tagListMatch (StrArray s) pt (Repository r) =
+  withCString pt $ \pat ->
+  undefined -- retMaybe =<< {#call git_tag_list_match#} s pat r

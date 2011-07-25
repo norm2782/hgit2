@@ -27,7 +27,7 @@ instance CWrapper ODBObj where
 -- Before the ODB can be used for read/writing, a custom database backend must
 -- be manually added using `git_odb_add_backend()`
 newODB :: IOEitherErr ODB
-newODB = callPeek ODB {#call git_odb_new#}
+newODB = callPeek' ODB {#call git_odb_new#}
 
 -- Create a new object database and automatically add the two default backends:
 --
@@ -38,15 +38,18 @@ newODB = callPeek ODB {#call git_odb_new#}
 --   as the Objects folder which contains a 'pack/' folder with the
 --   corresponding data
 openODB :: String -> IOEitherErr ODB
-openODB str = withCString str $ \str' ->
-  callPeek ODB (\out -> {#call git_odb_open#} out str')
+openODB str =
+  withCString str $ \str' ->
+  callPeek' ODB (\out -> {#call git_odb_open#} out str')
 
 -- | Add a custom backend to an existing Object DB
 --
 -- The backends are checked in relative ordering, based on the value of the
 -- `priority` parameter.
 addODBBackend :: ODB -> ODBBackend -> Int -> IOCanFail
-addODBBackend (ODB o) (ODBBackend ob) n =
+addODBBackend (ODB ofp) (ODBBackend bfp) n =
+  withForeignPtr ofp $ \o ->
+  withForeignPtr bfp $ \ob ->
   retMaybe =<< {#call git_odb_add_backend#} o ob (fromIntegral n)
 
 -- | Add a custom backend to an existing Object DB; this backend will work as
@@ -60,12 +63,16 @@ addODBBackend (ODB o) (ODBBackend ob) n =
 --
 -- Writing is disabled on alternate backends.
 addAlternate :: ODB -> ODBBackend -> Int -> IOCanFail
-addAlternate (ODB o) (ODBBackend ob) n =
+addAlternate (ODB ofp) (ODBBackend bfp) n =
+  withForeignPtr ofp $ \o ->
+  withForeignPtr bfp $ \ob ->
   retMaybe =<< {#call git_odb_add_alternate#} o ob (fromIntegral n)
 
 -- | Close an open object database.
 closeODB :: ODB -> IO ()
-closeODB = {#call git_odb_close#} . unwrap
+closeODB (ODB ofp) =
+  withForeignPtr ofp $ \o ->
+ {#call git_odb_close#} o
 
 -- | Read an object from the database.
 --
@@ -74,8 +81,10 @@ closeODB = {#call git_odb_close#} . unwrap
 -- The returned object is reference counted and internally cached, so it should
 -- be closed by the user once it's no longer in use.
 readODB :: ODB -> OID -> IOEitherErr ODBObj
-readODB (ODB o) (OID i) = callPeek ODBObj
-  (\out -> {#call git_odb_read#} out o i)
+readODB (ODB ofp) (OID ifp) =
+  withForeignPtr ofp $ \o ->
+  withForeignPtr ifp $ \i ->
+  callPeek' ODBObj (\out -> {#call git_odb_read#} out o i)
 
 -- | Read an object from the database, given a prefix of its identifier.
 --
@@ -88,8 +97,10 @@ readODB (ODB o) (OID i) = callPeek ODBObj
 -- The returned object is reference counted and internally cached, so it should
 -- be closed by the user once it's no longer in use.
 readPrefix :: ODB -> OID -> Int -> IOEitherErr ODBObj
-readPrefix (ODB o) (OID i) n = callPeek ODBObj
-  (\out -> {#call git_odb_read_prefix#} out o i (fromIntegral n))
+readPrefix (ODB ofp) (OID ifp) n =
+  withForeignPtr ofp $ \o ->
+  withForeignPtr ifp $ \i ->
+  callPeek' ODBObj (\out -> {#call git_odb_read_prefix#} out o i (fromIntegral n))
 
 {-
 /**
@@ -114,11 +125,14 @@ GIT_EXTERN(int) git_odb_read_header(size_t *len_p, git_otype *type_p, git_odb *d
 TODO
 -}
 readHeader :: ODB -> OID -> IOEitherErr OType
-readHeader (ODB o) (OID i) = undefined
+readHeader (ODB ofp) (OID ifp) = undefined
 
 -- | Determine if the given object can be found in the object database.
 exists :: ODB -> OID -> IO Bool
-exists (ODB o) (OID d) = return . toBool =<< {#call git_odb_exists#} o d
+exists (ODB ofp) (OID dfp) =
+  withForeignPtr ofp $ \o ->
+  withForeignPtr dfp $ \d ->
+  return . toBool =<< {#call git_odb_exists#} o d
 
 {-
 /**
@@ -177,8 +191,10 @@ GIT_EXTERN(int) git_odb_open_wstream(git_odb_stream **stream, git_odb *db, size_
 TODO: Finish this
 -}
 openWStream :: ODB -> OType -> IOEitherErr ODBStream
-openWStream (ODB o) oty = callPeek ODBStream
-  (\out -> {#call git_odb_open_wstream#} out o undefined (fromIntegral $ fromEnum oty))
+openWStream (ODB ofp) oty =
+  withForeignPtr ofp $ \o ->
+  callPeek' ODBStream (\out -> {#call git_odb_open_wstream#} out o undefined
+                                 (fromIntegral $ fromEnum oty))
 
 -- | Open a stream to read an object from the ODB
 --
@@ -196,8 +212,10 @@ openWStream (ODB o) oty = callPeek ODBStream
 --
 -- The stream must always be free'd or will leak memory.
 openRStream :: ODB -> OID -> IOEitherErr ODBStream
-openRStream (ODB o) (OID i) = callPeek ODBStream
-  (\out -> {#call git_odb_open_rstream#} out o i)
+openRStream (ODB ofp) (OID ifp) =
+  withForeignPtr ofp $ \o ->
+  withForeignPtr ifp $ \i ->
+  callPeek' ODBStream (\out -> {#call git_odb_open_rstream#} out o i)
 
 {-
 /**
@@ -239,13 +257,14 @@ GIT_EXTERN(int) git_odb_hashfile(git_oid *out, const char *path, git_otype type)
 -- This method must always be called once a `git_odb_object` is no longer
 -- needed, otherwise memory will leak.
 closeODBObj :: ODBObj -> IO ()
-closeODBObj = {#call git_odb_object_close#} . unwrap
+closeODBObj (ODBObj fp) = withForeignPtr fp $ \o ->
+  {#call git_odb_object_close#} o
 
 -- | Return the OID of an ODB object
 --
 -- This is the OID from which the object was read from
 objId :: ODBObj -> IO OID
-objId = callRetCons {#call git_odb_object_id#} OID
+objId = undefined-- callRetCons {#call git_odb_object_id#} OID
 
 -- | Return the data of an ODB object
 --
@@ -254,14 +273,18 @@ objId = callRetCons {#call git_odb_object_id#} OID
 --
 -- This pointer is owned by the object and shall not be free'd.
 objData :: ODBObj -> IO RawData
-objData = callRetCons {#call git_odb_object_data#} RawData
+objData = undefined -- callRetCons {#call git_odb_object_data#} RawData
 
 -- | Return the size of an ODB object
 -- This is the real size of the `data` buffer, not the actual size of the
 -- object.
 odbObjSize :: ODBObj -> IO Integer
-odbObjSize = retNum . {#call git_odb_object_size#} . unwrap
+odbObjSize (ODBObj fp) =
+  withForeignPtr fp $ \p ->
+  retNum $ {#call git_odb_object_size#} p
 
 -- | Return the type of an ODB object
 odbObjType :: ODBObj -> IO OType
-odbObjType = retEnum . {#call git_odb_object_type#} . unwrap
+odbObjType (ODBObj fp) =
+  withForeignPtr fp $ \p ->
+  retEnum $ {#call git_odb_object_type#} p

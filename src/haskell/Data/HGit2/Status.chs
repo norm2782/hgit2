@@ -35,17 +35,19 @@ TODO: Review this
 -- passed to this function. If the callback returns something other than
 -- GitSuccess, this function will return that value.
 
-foreachStatus :: Repository -> FunPtr (Ptr CChar -> CUInt -> CPtr -> IO CInt)
-              -> CPtr -> IOEitherErr Int
-foreachStatus (Repository fp) f p = withForeignPtr fp $ \r -> do
-  res <- {#call git_status_foreach#} r f p
-  return $ if res == 0
-             then Left  $ toEnum . fromIntegral $ res
-             else Right $ fromIntegral res
+foreachStatus :: (Num b, Enum a) => Repository -> FunPtr (Ptr CChar -> CUInt
+              -> Ptr () -> IO CInt) -> Ptr () -> IO (Either a b)
+foreachStatus (Repository fp) f p =
+  withForeignPtr fp $ \r -> do
+    res <- {#call git_status_foreach#} r f p
+    return $ if res == 0
+               then Left  $ toEnum . fromIntegral $ res
+               else Right $ fromIntegral res
 
 -- | Get file status for a single file
 fileStatus :: Repository -> String -> IO Int
-fileStatus (Repository fp) fl = withForeignPtr fp $ \r ->
-  withCString fl $ \loc -> alloca $ \out -> do
-  _ <- {#call git_status_file#} out r loc
-  return . fromIntegral =<< peek out
+fileStatus (Repository fp) fl =
+  withForeignPtr fp $ \r ->
+    withCString fl $ \loc -> alloca $ \out -> do
+    _ <- {#call git_status_file#} out r loc
+    return . fromIntegral =<< peek out

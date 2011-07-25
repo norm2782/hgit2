@@ -29,27 +29,33 @@ instance CWrapper ReflogEntry where
 --
 -- The reflog must be freed manually by using freeReflog
 readReflog :: Reference -> IOEitherErr Reflog
-readReflog (Reference r) = callPeek Reflog
-  (\out -> {#call git_reflog_read#} out r)
+readReflog (Reference rfp) =
+  withForeignPtr rfp $ \r ->
+  callPeek' Reflog (\out -> {#call git_reflog_read#} out r)
 
 -- | Write a new reflog for the given reference
 --
 -- If there is no reflog file for the given reference yet, it will be created.
 writeReflog :: Reference -> OID -> Signature -> String -> IOCanFail
-writeReflog (Reference r) (OID o) (Signature s) str = withCString str $
-  \str' -> retMaybe =<< {#call git_reflog_write#} r o s str'
+writeReflog (Reference rfp) (OID ofp) (Signature sfp) str =
+  withForeignPtr rfp $ \r ->
+  withForeignPtr ofp $ \o ->
+  withForeignPtr sfp $ \s ->
+  withCString str $ \str' ->
+  retMaybe =<< {#call git_reflog_write#} r o s str'
 
 -- | Get the number of log entries in a reflog
 entryCount :: Reflog -> IO Int
-entryCount = callRetNum {#call git_reflog_entrycount#}
+entryCount = undefined -- callRetNum {#call git_reflog_entrycount#}
 
 -- | Lookup an entry by its index
 entryByIndex :: Reflog -> Int -> IO (Maybe ReflogEntry)
-entryByIndex (Reflog r) n = retRes' ReflogEntry
-  ({#call git_reflog_entry_byindex#} r (fromIntegral n))
+entryByIndex (Reflog rfp) n =
+  withForeignPtr rfp $ \r ->
+  undefined -- ReflogEntry ({#call git_reflog_entry_byindex#} r (fromIntegral n))
 
-unsafeCallStr :: CWrapper a => (CPtr -> IO CString) -> a -> String
-unsafeCallStr call = unsafePerformIO . (peekCString =<<) . call . unwrap
+{- unsafeCallStr :: CWrapper a => (CPtr -> IO CString) -> a -> String-}
+unsafeCallStr call = undefined -- unsafePerformIO . (peekCString =<<) . call . unwrap
 
 -- | Get the old oid
 oldOID :: ReflogEntry -> String
@@ -61,8 +67,11 @@ newOID = unsafeCallStr {#call unsafe git_reflog_entry_oidnew#}
 
 -- | Get the committer of this entry
 committer :: ReflogEntry -> Signature
-committer = unsafePerformIO . (fmap Signature) .
-  {#call unsafe git_reflog_entry_committer#} . unwrap
+committer (ReflogEntry rfp) = unsafePerformIO $
+  withForeignPtr rfp $ \r -> do
+  res <- {#call unsafe git_reflog_entry_committer#} r
+  fpr <- mkFPtr res
+  return (Signature fpr)
 
 -- | Get the log msg
 entryMsg :: ReflogEntry -> String

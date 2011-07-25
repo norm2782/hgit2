@@ -22,6 +22,7 @@ packBackend = backend {#call git_odb_backend_pack#}
 looseBackend :: String -> IOEitherErr ODBBackend
 looseBackend = backend {#call git_odb_backend_loose#}
 
-backend :: (Ptr CPtr -> CString -> IO CInt) -> String -> IOEitherErr ODBBackend
+backend :: (Ptr (Ptr ()) -> CString -> IO CInt) -> String
+        -> IOEitherErr ODBBackend
 backend fn str = withCString str $ \str' ->
-  callPeek ODBBackend (\out -> fn out str')
+  callPeek' ODBBackend (\out -> fn out str')

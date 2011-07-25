@@ -35,8 +35,10 @@ retRes con fp = withForeignPtr fp $ return . ret
   where ret res | res == nullPtr = Nothing
                 | otherwise      = Just $ con fp
 
-retRes' :: Monad m => (Ptr a -> b) -> m (Ptr a) -> m (Maybe b)
-retRes' con ptr = return . retRes'' =<< ptr
+{- retRes' :: Monad m => (Ptr a -> b) -> m (Ptr a) -> m (Maybe b)-}
+retRes' con ptr = do
+  fp <- ptr
+  withForeignPtr fp $ return . retRes''
   where retRes'' res | res == nullPtr = Nothing
                      | otherwise      = Just $ con res
 
@@ -74,8 +76,8 @@ retEnum a = return . toEnum . fromIntegral =<< a
 {- callRetMaybe :: CWrapper a => (CPtr -> IO CInt) -> a -> IOCanFail-}
 {- callRetMaybe call = (retMaybe =<<) . call . unwrap-}
 
-callPeek :: Storable b => (b -> a) -> (Ptr b -> IO CInt) -> IOEitherErr a
-callPeek con call = alloca $ \out -> eitherPeek out con =<< call out
+{- callPeek :: Storable b => (b -> a) -> (Ptr b -> IO CInt) -> IOEitherErr a-}
+{- callPeek con call = alloca $ \out -> eitherPeek out con =<< call out-}
 
 callPeek' :: (ForeignPtr a1 -> a) -> (Ptr (Ptr a1) -> IO CInt)
           -> IO (Either GitError a)
@@ -87,3 +89,5 @@ eitherPeek' ptr = eitherCon (newForeignPtr finalizerFree =<< peek ptr)
 {- unsafePeekStr :: CWrapper a => (CPtr -> IO CString) -> a -> String-}
 {- unsafePeekStr call = unsafePerformIO . (peekCString =<<) . call . unwrap-}
 
+mkFPtr :: Ptr a -> IO (ForeignPtr a)
+mkFPtr = newForeignPtr finalizerFree

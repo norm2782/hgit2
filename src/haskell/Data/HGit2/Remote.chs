@@ -22,34 +22,46 @@ instance CWrapper HeadArray where
 
 -- | Get the information for a particular remote
 remote :: Config -> String -> IOEitherErr Remote
-remote (Config c) str = withCString str $ \str' ->
-  callPeek Remote (\out -> {#call git_remote_get#} out c str')
+remote (Config cfp) str =
+  withForeignPtr cfp $ \c ->
+  withCString str $ \str' ->
+  callPeek' Remote (\out -> {#call git_remote_get#} out c str')
 
 -- | Get the remote's name
 remoteName :: Remote -> String
-remoteName = unsafePeekStr {#call git_remote_name#}
+remoteName = undefined -- unsafePeekStr {#call git_remote_name#}
 
 -- | Get the remote's url
 remoteURL :: Remote -> String
-remoteURL = unsafePeekStr {#call git_remote_url#}
+remoteURL = undefined --unsafePeekStr {#call git_remote_url#}
 
 -- | Get the fetch refspec
 remoteRefSpec :: Remote -> IO (Maybe RefSpec)
-remoteRefSpec = retRes' RefSpec . {#call git_remote_fetchspec#} . unwrap
+remoteRefSpec (Remote rfp) =
+  withForeignPtr rfp $ \r ->
+  undefined
+  {- retRes' RefSpec $ {#call git_remote_fetchspec#} r-}
 
 -- | Get the push refspec
 pushSpec :: Remote -> IO (Maybe RefSpec)
-pushSpec = retRes' RefSpec . {#call git_remote_pushspec#} . unwrap
+pushSpec  (Remote rfp) =
+  withForeignPtr rfp $ \r ->
+  undefined
+  {- retRes' RefSpec $ {#call git_remote_pushspec#} r-}
 
 -- | Open a connection to a remote
 --
 -- The transport is selected based on the URL
 connect :: Remote -> Int -> IOCanFail
-connect (Remote r) n =
+connect (Remote rfp) n =
+  withForeignPtr rfp $ \r ->
   retMaybe =<< {#call git_remote_connect#} r (fromIntegral n)
 
 -- | Get a list of refs at the remote
 --
 -- The remote (or more exactly its transport) must be connected.
 remoteLs :: Remote -> HeadArray -> IOCanFail
-remoteLs (Remote r) (HeadArray h) = retMaybe =<< {#call git_remote_ls#} r h
+remoteLs (Remote rfp) (HeadArray hfp) =
+  withForeignPtr rfp $ \r ->
+  withForeignPtr hfp $ \h ->
+  retMaybe =<< {#call git_remote_ls#} r h

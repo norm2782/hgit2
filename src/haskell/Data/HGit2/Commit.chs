@@ -1,5 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE Rank2Types #-}
 
 #include <git2/commit.h>
 
@@ -7,7 +8,7 @@ module Data.HGit2.Commit where
 
 import Data.HGit2.Git2
 import Data.HGit2.Errors
-import Data.HGit2.Repository hiding (free)
+import Data.HGit2.Repository
 import Data.HGit2.Types
 import Data.HGit2.Signature
 import Data.HGit2.OID
@@ -22,14 +23,14 @@ newtype Commit = Commit CPtr
 instance CWrapper Commit where
   unwrap (Commit c) = c
 
-oidCall :: (CPtr -> IO CPtr) -> Commit -> OID
-oidCall = flipUSCall (return . OID)
+oidCall :: (Ptr () -> IO (Ptr ())) -> Commit -> OID
+oidCall = undefined -- flipUSCall (return . OID)
 
-strCall :: (CPtr -> IO CString) -> Commit -> String
-strCall = flipUSCall peekCString
+strCall :: (Ptr () -> IO CString) -> Commit -> String
+strCall = undefined -- flipUSCall peekCString
 
-sigCall :: (CPtr -> IO CPtr) -> Commit -> Signature
-sigCall = flipUSCall (return . Signature)
+sigCall :: (Ptr () -> IO (Ptr ())) -> Commit -> Signature
+sigCall = undefined -- flipUSCall (return . Signature)
 
 commitId :: Commit -> OID
 commitId = oidCall {#call unsafe git_commit_id#}
@@ -44,10 +45,10 @@ commitMsg :: Commit -> String
 commitMsg = strCall {#call unsafe git_commit_message#}
 
 commitTime :: Commit -> TimeT
-commitTime = usCall {#call unsafe git_commit_time#} (return =<<)
+commitTime = undefined -- usCall {#call unsafe git_commit_time#} (return =<<)
 
 timeOffset :: Commit -> Int
-timeOffset = usCall {#call unsafe git_commit_time_offset#} retNum
+timeOffset = undefined -- usCall {#call unsafe git_commit_time_offset#} retNum
 
 committer :: Commit -> Signature
 committer = sigCall {#call unsafe git_commit_committer#}
@@ -56,28 +57,43 @@ author :: Commit -> Signature
 author = sigCall {#call unsafe git_commit_author#}
 
 tree :: Commit -> IOEitherErr Tree
-tree (Commit c) = callPeek Tree (\out -> {#call git_commit_tree#} out c)
+tree (Commit cfp) =
+  withForeignPtr cfp $ \c ->
+  callPeek' Tree (\out -> {#call git_commit_tree#} out c)
 
 parentCount :: Commit -> IO Int
-parentCount = wrapToMNum {#call git_commit_parentcount#}
+parentCount = undefined -- wrapToMNum {#call git_commit_parentcount#}
 
 parent :: Commit -> Int -> IOEitherErr Commit
-parent (Commit c) n =
-  callPeek Commit (\out -> {#call git_commit_parent#} out c (fromIntegral n))
+parent (Commit cfp) n =
+  withForeignPtr cfp $ \c ->
+  callPeek' Commit (\out -> {#call git_commit_parent#} out c (fromIntegral n))
 
 parentOID :: Commit -> Int -> IO (Maybe OID)
-parentOID (Commit c) n =
-  retRes OID =<< {#call git_commit_parent_oid#} c (fromIntegral n)
+parentOID (Commit cfp) n =
+  withForeignPtr cfp $ \c -> do
+  r <- mkFPtr =<< {#call git_commit_parent_oid#} c (fromIntegral n)
+  retRes OID r
 
+
+-- TODO: split up into two functions, so free doesn't need to be manual. use
+-- automated machanisms instead
 createCommit :: OID -> Repository -> Maybe String -> Signature -> Signature
              -> String -> Tree -> [Commit] -> IO (Maybe GitError)
-createCommit (OID o) (Repository r) mref (Signature ausig) (Signature comsig)
-             msg (Tree t) ps = withCString msg $ \msgStr -> do
+createCommit (OID ofp) (Repository rfp) mref (Signature afp) (Signature cfp)
+             msg (Tree tfp) ps =
+  withForeignPtr ofp $ \o ->
+  withForeignPtr rfp $ \r ->
+  withForeignPtr afp $ \ausig ->
+  withForeignPtr cfp $ \comsig ->
+  withForeignPtr tfp $ \t ->
+  withCString msg $ \msgStr -> do
   updRef <- case mref of
               Nothing -> return nullPtr
               Just x  -> newCString x
-  carr   <- newArray [c | Commit c <- ps]
-  let ret = retMaybe =<< {#call git_commit_create#} o r updRef ausig comsig
-                               msgStr t (fromIntegral $ length ps) carr
+  {- carr   <- newArray [c | Commit c <- ps]-}
+  {- let ret = retMaybe =<< {#call git_commit_create#} o r updRef ausig comsig-}
+                               {- msgStr t (fromIntegral $ length ps) carr-}
   free updRef
-  ret
+  {- ret-}
+  undefined

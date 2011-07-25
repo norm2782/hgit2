@@ -66,8 +66,9 @@ createOID (Repository rfp) n (OID ifp) f =
 -- Only available if the reference is direct (i.e. not symbolic)
 refOID :: Reference -> IO (Maybe OID)
 refOID (Reference rfp) =
-  withForeignPtr rfp $ \ref ->
-  retRes OID =<< {#call git_reference_oid#} ref
+  withForeignPtr rfp $ \ref -> do
+  p <- mkFPtr =<< {#call git_reference_oid#} ref
+  retRes OID p
 
 -- | Get full name to the reference pointed by this reference
 --
@@ -81,7 +82,7 @@ refTarget (Reference rfp) =
 --
 -- Either direct (GIT_REF_OID) or symbolic (GIT_REF_SYMBOLIC)
 refType :: Reference -> IO RType
-refType (Referemce rfp) =
+refType (Reference rfp) =
   withForeignPtr rfp $ \ref ->
   return . toEnum . fromIntegral =<< {#call git_reference_type#} ref
 
@@ -106,7 +107,8 @@ resolveRef (Reference rfp) =
 -- | Get the repository where a reference resides
 refOwner :: Reference -> IO Repository
 refOwner (Reference rfp) = withForeignPtr rfp $ \r ->
-  callRetCons {#call git_reference_owner#} Repository r
+  undefined
+  {- callRetCons {#call git_reference_owner#} Repository r-}
 
 -- | Set the symbolic target of a reference.
 --
@@ -117,7 +119,8 @@ setRefTarget :: Reference -> String -> IOCanFail
 setRefTarget (Reference rfp) s =
   withForeignPtr rfp $ \r ->
   withCString s $ \s' ->
-  retMaybe =<< {#call git_reference_set_target#} r s'
+  {- retMaybe =<< {#call git_reference_set_target#} r s'-}
+  undefined
 
 -- | Set the OID target of a reference.
 --
@@ -128,7 +131,8 @@ setRefOID :: Reference -> OID -> IOCanFail
 setRefOID (Reference rfp) (OID ofp) =
   withForeignPtr rfp $ \r ->
   withForeignPtr ofp $ \o ->
-  retMaybe =<< {#call git_reference_set_oid#} r o
+  {- retMaybe =<< {#call git_reference_set_oid#} r o-}
+  undefined
 
 -- | Rename an existing reference
 --
@@ -140,7 +144,8 @@ renameRef :: Reference -> String -> Bool -> IOCanFail
 renameRef (Reference rfp) s b =
   withForeignPtr rfp $ \r ->
   withCString s $ \str ->
-  retMaybe =<< {#call git_reference_rename#} r str (fromBool b)
+  {- retMaybe =<< {#call git_reference_rename#} r str (fromBool b)-}
+  undefined
 
 -- | Delete an existing reference
 --
@@ -150,7 +155,8 @@ renameRef (Reference rfp) s b =
 -- reference pointer will no longer be valid.
 delRef :: Reference -> IOCanFail
 delRef (Reference rfp) = withForeignPtr rfp $ \r ->
-  callRetMaybe {#call git_reference_delete#}
+  {- callRetMaybe {#call git_reference_delete#}-}
+  undefined
 
 -- | Pack all the loose references in the repository
 --
@@ -164,7 +170,8 @@ delRef (Reference rfp) = withForeignPtr rfp $ \r ->
 -- previously loaded on the cache.
 packAllRef :: Repository -> IOCanFail
 packAllRef (Repository rfp) = withForeignPtr rfp $ \r ->
-  callRetMaybe {#call git_reference_packall#} r
+  {- callRetMaybe {#call git_reference_packall#} r-}
+  undefined
 
 -- | Fill a list with all the references that can be found in a repository.
 --
@@ -179,7 +186,8 @@ listAllRef :: StrArray -> Repository -> Int -> IOCanFail
 listAllRef (StrArray sfp) (Repository rfp) n =
   withForeignPtr sfp $ \s ->
   withForeignPtr rfp $ \r ->
-  retMaybe =<< {#call git_reference_listall#} s r (fromIntegral n)
+  {- retMaybe =<< {#call git_reference_listall#} s r (fromIntegral n)-}
+  undefined
 
 {-
 /**

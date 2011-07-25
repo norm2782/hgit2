@@ -17,18 +17,25 @@ instance CWrapper Transport where
 
 -- | Get the appropriate transport for an URL.
 new :: String -> IOEitherErr Transport
-new u = withCString u $ \url -> callPeek Transport
-  (\out -> {#call git_transport_new#} out url)
+new u =
+  withCString u $ \url ->
+  callPeek' Transport (\out -> {#call git_transport_new#} out url)
 
 connect :: Transport -> Int -> IOCanFail
-connect (Transport t) n =
+connect (Transport tfp) n =
+  withForeignPtr tfp $ \t ->
   retMaybe =<< {#call git_transport_connect#} t (fromIntegral n)
 
 ls :: Transport -> HeadArray -> IOCanFail
-ls (Transport t) (HeadArray h) = retMaybe =<< {#call git_transport_ls#} t h
+ls (Transport tfp) (HeadArray hfp) =
+  withForeignPtr tfp $ \t ->
+  withForeignPtr hfp $ \h ->
+  retMaybe =<< {#call git_transport_ls#} t h
 
 close :: Transport -> IOCanFail
-close = (retMaybe =<<) . {#call git_transport_close#} . unwrap
+close (Transport tfp) =
+  withForeignPtr tfp $ \t ->
+  retMaybe =<< {#call git_transport_close#} t
 
 {- add :: Transport -> String -> IOCanFail-}
 {- add (Transport t) st =-}

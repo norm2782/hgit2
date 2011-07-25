@@ -20,26 +20,29 @@ instance CWrapper GitObj where
 
 -- | Lookup a reference to one of the objects in a repostory.
 lookupObj :: Repository -> OID -> OType -> IOEitherErr GitObj
-lookupObj (Repository fp) (OID o) oty = withForeignPtr fp $ \r ->
-  callPeek GitObj (\out -> {#call git_object_lookup#} out r o
+lookupObj (Repository fp) (OID ofp) oty =
+  withForeignPtr fp $ \r ->
+  withForeignPtr ofp $ \o ->
+  callPeek' GitObj (\out -> {#call git_object_lookup#} out r o
     (fromIntegral $ fromEnum oty))
 
 -- | Lookup a reference to one of the objects in a repostory, given a prefix of
 -- its identifier (short id).
 -- TODO: Calculate size of OID dynamically, rather than passing an int
 lookupObjPref :: Repository -> OID -> Int -> OType -> IOEitherErr GitObj
-lookupObjPref (Repository fp) (OID o) n oty = withForeignPtr fp $ \r ->
-  callPeek GitObj (\out -> {#call git_object_lookup_prefix#} out r o
+lookupObjPref (Repository fp) (OID ofp) n oty =
+  withForeignPtr fp $ \r ->
+  withForeignPtr ofp $ \o ->
+  callPeek' GitObj (\out -> {#call git_object_lookup_prefix#} out r o
     (fromIntegral n) (fromIntegral $ fromEnum oty))
 
 -- | Get the id (SHA1) of a repository object
 oid :: GitObj -> OID
-oid = unsafePerformIO . callRetCons {#call unsafe git_object_id#} OID
+oid = undefined -- unsafePerformIO . callRetCons {#call unsafe git_object_id#} OID
 
 -- | Get the object type of an object
 objTy :: GitObj -> OType
-objTy = unsafePerformIO . retEnum .
-  {#call unsafe git_object_type#} . unwrap
+objTy = undefined -- unsafePerformIO . retEnum . {#call unsafe git_object_type#} . unwrap
 
 -- | Get the repository that owns this object
 --
@@ -50,8 +53,9 @@ objTy = unsafePerformIO . retEnum .
 -- object.
 -- TODO: Refactor
 objOwner :: GitObj -> Repository
-objOwner (GitObj o) = unsafePerformIO $ do
-  ptr <- newForeignPtr finalizerFree =<< {#call git_object_owner#} o
+objOwner (GitObj ofp) = unsafePerformIO $
+  withForeignPtr ofp $ \o -> do
+  ptr <- mkFPtr =<< {#call git_object_owner#} o
   return $ Repository ptr
 
 -- | Close an open object
@@ -65,7 +69,8 @@ objOwner (GitObj o) = unsafePerformIO $ do
 -- It *is* necessary to call this method when you stop using an object. Failure
 -- to do so will cause a memory leak.
 closeObj :: GitObj -> IO ()
-closeObj = {#call git_object_close#} . unwrap
+closeObj (GitObj gfp) =
+  withForeignPtr gfp $ {#call git_object_close#}
 
 -- | Convert an object type to it's string representation.
 oTypeToString :: OType -> IO String

@@ -54,88 +54,107 @@ idxExtFlags = fromEnum IntentToAdd .|. fromEnum SkipWorkTree
 -- index file in the provided path, without a repository to back it.
 openIndex :: String -> IOEitherErr Index
 openIndex path = withCString path $ \pth ->
-  callPeek Index (\out -> {#call git_index_open#} out pth)
+  callPeek' Index (\out -> {#call git_index_open#} out pth)
 
 -- | Clear the contents (all the entries) of an index object. This clears the
 -- index object in memory; changes must be manually written to disk for them to
 -- take effect.
 clearIndex :: Index -> IO ()
-clearIndex = {#call git_index_clear#} . unwrap
+clearIndex (Index ifp) =
+  withForeignPtr ifp $ {#call git_index_clear#}
 
 -- | Update the contents of an existing index object in memory by reading from
 -- the hard disk.
 readIndex :: Index -> IOCanFail
-readIndex = callRetMaybe {#call git_index_read#}
+readIndex = undefined -- callRetMaybe {#call git_index_read#}
 
 -- | Write an existing index object from memory back to disk using an atomic
 -- file lock.
 writeIndex :: Index -> IOCanFail
-writeIndex = callRetMaybe {#call git_index_write#}
+writeIndex = undefined -- callRetMaybe {#call git_index_write#}
 
 -- | Find the first index of any entries which point to given path in the Git
 -- index.
 findIndex :: Index -> String -> IO (Maybe Int)
-findIndex (Index idx) path = withCString path $ \path' -> do
-  res <- {#call git_index_find#} idx path'
-  return $ if res >= 0
-             then Just $ fromIntegral res
-             else Nothing
+findIndex (Index ifp) path =
+  withForeignPtr ifp $ \idx ->
+  withCString path $ \path' -> do
+    res <- {#call git_index_find#} idx path'
+    return $ if res >= 0
+               then Just $ fromIntegral res
+               else Nothing
 
 -- | Remove all entries with equal path except last added
 uniqIndex :: Index -> IO ()
-uniqIndex = {#call git_index_uniq#} . unwrap
+uniqIndex (Index ifp) =
+  withForeignPtr ifp $ {#call git_index_uniq#}
 
 -- | Add or update an index entry from a file in disk
 addIndex :: Index -> String -> Int -> IO (Maybe GitError)
-addIndex (Index idx) path stage = withCString path $ \pth ->
-  retMaybe =<< {#call git_index_add#} idx pth (fromIntegral stage)
+addIndex (Index ifp) path stage =
+  withForeignPtr ifp $ \idx ->
+  withCString path $ \pth ->
+    retMaybe =<< {#call git_index_add#} idx pth (fromIntegral stage)
 
 -- | Add or update an index entry from an in-memory struct
 addIndex2 :: Index -> IndexEntry -> IO (Maybe GitError)
-addIndex2 (Index idx) (IndexEntry ie) =
+addIndex2 (Index ifp) (IndexEntry efp) =
+  withForeignPtr ifp $ \idx ->
+  withForeignPtr efp $ \ie ->
   retMaybe =<< {#call git_index_add2#} idx ie
 
 -- | Add (append) an index entry from a file in disk
 appendIndex :: Index -> String -> Int -> IO (Maybe GitError)
-appendIndex (Index idx) path stage = withCString path $ \pth ->
-  retMaybe =<< {#call git_index_append#} idx pth (fromIntegral stage)
+appendIndex (Index ifp) path stage =
+  withForeignPtr ifp $ \idx ->
+  withCString path $ \pth ->
+    retMaybe =<< {#call git_index_append#} idx pth (fromIntegral stage)
 
 -- | Add (append) an index entry from an in-memory struct
 appendIndex2 :: Index -> IndexEntry -> IO (Maybe GitError)
-appendIndex2 (Index idx) (IndexEntry ie) =
+appendIndex2 (Index ifp) (IndexEntry efp) =
+  withForeignPtr ifp $ \idx ->
+  withForeignPtr efp $ \ie ->
   retMaybe =<< {#call git_index_append2#} idx ie
 
 -- | Remove an entry from the index
 remove :: Index -> Int -> IO (Maybe GitError)
-remove (Index idx) n =
+remove (Index ifp) n =
+  withForeignPtr ifp $ \idx ->
   retMaybe =<< {#call git_index_remove#} idx (fromIntegral n)
 
 -- | Get a pointer to one of the entries in the index
 getIndex :: Index -> Int -> IO (Maybe IndexEntry)
-getIndex (Index idx) n =
-  retRes IndexEntry =<< {#call git_index_get#} idx (fromIntegral n)
+getIndex (Index ifp) n =
+  withForeignPtr ifp $ \idx ->
+  undefined
+  {- retRes IndexEntry =<< {#call git_index_get#} idx (fromIntegral n)-}
 
 -- | Get the count of entries currently in the index
 entryCount :: Index -> IO Int
-entryCount = callRetNum {#call git_index_entrycount#}
+entryCount = undefined -- callRetNum {#call git_index_entrycount#}
 
 -- | Get the count of unmerged entries currently in the index
 entryCountUnMerged :: Index -> IO Int
-entryCountUnMerged = callRetNum {#call git_index_entrycount_unmerged#}
+entryCountUnMerged = undefined -- callRetNum {#call git_index_entrycount_unmerged#}
 
 retIEU :: CPtr -> IO (Maybe IndexEntryUnMerged)
-retIEU = retRes IndexEntryUnMerged
+retIEU = undefined -- retRes IndexEntryUnMerged
 
 -- | Get an unmerged entry from the index.
 unmergedByPath :: Index -> String -> IO (Maybe IndexEntryUnMerged)
-unmergedByPath (Index idx) path = withCString path $ \pth ->
-  retIEU =<< {#call git_index_get_unmerged_bypath#} idx pth
+unmergedByPath (Index ifp) path =
+  withForeignPtr ifp $ \idx ->
+  withCString path $ \pth ->
+  undefined
+    {- retIEU =<< {#call git_index_get_unmerged_bypath#} idx pth-}
 
 -- | Get an unmerged entry from the index.
 unmergedByIndex :: Index -> Int -> IO (Maybe IndexEntryUnMerged)
-unmergedByIndex (Index idx) n =
-  retIEU =<< {#call git_index_get_unmerged_byindex#} idx (fromIntegral n)
+unmergedByIndex (Index ifp) n =
+  withForeignPtr ifp $ \idx ->
+  undefined -- retIEU =<< {#call git_index_get_unmerged_byindex#} idx (fromIntegral n)
 
 -- | Return the stage number from a git index entry
 entryStage :: IndexEntry -> IO Int
-entryStage = callRetNum {#call git_index_entry_stage#}
+entryStage = undefined -- callRetNum {#call git_index_entry_stage#}

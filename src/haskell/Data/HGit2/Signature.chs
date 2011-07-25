@@ -21,15 +21,14 @@ newSignature :: String -> String -> TimeT -> Int -> IO (Maybe Signature)
 newSignature nm em t off =
   withCString nm $ \nm' ->
   withCString em $ \em' ->
-  retSig =<< {#call git_signature_new#} nm' em' t (fromIntegral off)
+  retSig =<< mkFPtr =<< {#call git_signature_new#} nm' em' t (fromIntegral off)
 
--- | Create a new action signature with a timestamp of 'now'. The signature
--- must be freed manually or using freeSignature
+-- | Create a new action signature with a timestamp of 'now'.
 nowSignature :: String -> String -> IO (Maybe Signature)
 nowSignature nm em =
   withCString nm $ \nm' ->
   withCString em $ \em' ->
-  retSig =<< {#call git_signature_now#} nm' em'
+  retSig =<< mkFPtr =<< {#call git_signature_now#} nm' em'
 
 retSig :: CPtr -> IO (Maybe Signature)
 retSig = retRes Signature
@@ -38,4 +37,4 @@ retSig = retRes Signature
 dupSignature :: Signature -> IO (Maybe Signature)
 dupSignature (Signature sfp) =
   withForeignPtr sfp $ \sig ->
-  retSig =<< {#call git_signature_dup#} sig
+  retSig =<< mkFPtr =<< {#call git_signature_dup#} sig
