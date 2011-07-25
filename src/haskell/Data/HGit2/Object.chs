@@ -38,11 +38,15 @@ lookupObjPref (Repository fp) (OID ofp) n oty =
 
 -- | Get the id (SHA1) of a repository object
 oid :: GitObj -> OID
-oid = undefined -- unsafePerformIO . callRetCons {#call unsafe git_object_id#} OID
+oid (GitObj ofp) = unsafePerformIO $
+  withForeignPtr ofp $ \o -> do
+  ptr <- mkFPtr =<< {#call unsafe git_object_id#} o
+  return $ OID ptr
 
 -- | Get the object type of an object
 objTy :: GitObj -> OType
-objTy = undefined -- unsafePerformIO . retEnum . {#call unsafe git_object_type#} . unwrap
+objTy (GitObj ofp) = unsafePerformIO $
+  withForeignPtr ofp $ retEnum . {#call unsafe git_object_type#}
 
 -- | Get the repository that owns this object
 --
