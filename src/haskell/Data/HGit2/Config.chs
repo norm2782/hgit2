@@ -45,7 +45,8 @@ openGlobalConfig = callPeek Config {#call git_config_open_global#}
 -- you first have to add this file to a configuration object before you can
 -- query it for configuration variables.
 createOnDisk :: String -> IOEitherErr ConfigFile
-createOnDisk str = withCString str $ \str' ->
+createOnDisk str =
+  withCString str $ \str' ->
   callPeek ConfigFile (\out -> {#call git_config_file__ondisk#} out str')
 
 -- | Allocate a new configuration object
@@ -66,7 +67,6 @@ addFile (Config cfp) (ConfigFile ffp) pr =
   withForeignPtr cfp $ \c ->
   withForeignPtr ffp $ \f ->
   retEnum $ {#call git_config_add_file#} c f (fromIntegral pr)
-
 
 -- | Add an on-disk config file instance to an existing config
 --
@@ -96,19 +96,21 @@ openOnDisk str =
 
 -- | Get the value of an integer config variable.
 configInt :: Config -> String -> IOEitherErr Int
-configInt (Config cfp) str =
+configInt (Config cfp) str = alloca $ \out ->
   withForeignPtr cfp $ \c ->
-  withCString str $ \str' ->
-  undefined
-  {- callPeek fromIntegral ({#call git_config_get_int#} c str')-}
+  withCString str $ \str' -> do
+  res <- {#call git_config_get_int#} c str' out
+  num <- peek out
+  retEither res $ return . Right $ fromIntegral num
 
 -- | Get the value of an integer config variable.
 configInteger :: Config -> String -> IOEitherErr Integer
-configInteger (Config cfp) str =
+configInteger (Config cfp) str =  alloca $ \out ->
   withForeignPtr cfp $ \c ->
-  withCString str $ \str' ->
-  undefined
-  {- callPeek fromIntegral ({#call git_config_get_long#} c str')-}
+  withCString str $ \str' -> do
+  res <- {#call git_config_get_long#} c str' out
+  num <- peek out
+  retEither res $ return . Right $ fromIntegral num
 
 -- | Get the value of a boolean config variable.
 configBool :: Config -> String -> IO (Either GitError Bool)
@@ -155,8 +157,6 @@ delConfig (Config cfp) vn =
   withCString vn $ \str ->
   retMaybe =<< {#call git_config_delete#} c str
 
-{- mConfig :: (CPtr -> CString -> t -> IO CInt) -> Config -> String -> t-}
-        {- -> IO (Maybe GitError)-}
 mConfig :: (Ptr () -> CString -> t -> IO CInt) -> Config -> String -> t
         -> IOCanFail
 mConfig call (Config cfp) vn val =
