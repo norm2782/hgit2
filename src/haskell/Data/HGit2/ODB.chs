@@ -264,7 +264,10 @@ closeODBObj (ODBObj fp) = withForeignPtr fp $ \o ->
 --
 -- This is the OID from which the object was read from
 objId :: ODBObj -> IO OID
-objId = undefined-- callRetCons {#call git_odb_object_id#} OID
+objId (ODBObj ofp) =
+  withForeignPtr ofp $ \o -> do
+  ptr <- mkFPtr =<< {#call git_odb_object_id#} o
+  return $ OID ptr
 
 -- | Return the data of an ODB object
 --
@@ -273,7 +276,9 @@ objId = undefined-- callRetCons {#call git_odb_object_id#} OID
 --
 -- This pointer is owned by the object and shall not be free'd.
 objData :: ODBObj -> IO RawData
-objData = undefined -- callRetCons {#call git_odb_object_data#} RawData
+objData (ODBObj ofp) =
+  withForeignPtr ofp $ \o ->
+  return . RawData =<< {#call git_odb_object_data#} o
 
 -- | Return the size of an ODB object
 -- This is the real size of the `data` buffer, not the actual size of the
