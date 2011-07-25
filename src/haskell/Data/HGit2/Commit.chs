@@ -23,77 +23,105 @@ newtype Commit = Commit CPtr
 instance CWrapper Commit where
   unwrap (Commit c) = c
 
-oidCall :: (Ptr () -> IO (Ptr ())) -> Commit -> OID
-oidCall = undefined -- flipUSCall (return . OID)
-
-strCall :: (Ptr () -> IO CString) -> Commit -> String
-strCall = undefined -- flipUSCall peekCString
-
-sigCall :: (Ptr () -> IO (Ptr ())) -> Commit -> Signature
-sigCall = undefined -- flipUSCall (return . Signature)
-
+-- | Get the id of a commit.
 commitId :: Commit -> OID
-commitId = oidCall {#call unsafe git_commit_id#}
+commitId (Commit cfp) = unsafePerformIO $
+  withForeignPtr cfp $ \p -> do
+  o <- mkFPtr =<< {#call unsafe git_commit_id#} p
+  return $ OID o
 
+-- | Get the id of the tree pointed to by a commit. This differs from `tree` in
+-- that no attempts are made to fetch an object from the ODB.
 treeOID :: Commit -> OID
-treeOID = oidCall {#call unsafe git_commit_tree_oid#}
+treeOID (Commit cfp) = unsafePerformIO $
+  withForeignPtr cfp $ \p -> do
+  o <- mkFPtr =<< {#call unsafe git_commit_tree_oid#} p
+  return $ OID o
 
+-- | Get the short (one line) message of a commit.
 shortCommitMsg :: Commit -> String
-shortCommitMsg = strCall {#call unsafe git_commit_message_short#}
+shortCommitMsg (Commit cfp) = unsafePerformIO $
+  withForeignPtr cfp $ \p ->
+  peekCString =<< {#call unsafe git_commit_message_short#} p
 
+-- | Get the full message of a commit.
 commitMsg :: Commit -> String
-commitMsg = strCall {#call unsafe git_commit_message#}
+commitMsg (Commit cfp) = unsafePerformIO $
+  withForeignPtr cfp $ \p ->
+  peekCString =<< {#call unsafe git_commit_message#} p
 
+-- | Get the commit time (i.e. committer time) of a commit.
 commitTime :: Commit -> TimeT
-commitTime = undefined -- usCall {#call unsafe git_commit_time#} (return =<<)
+commitTime (Commit cfp) = unsafePerformIO $
+  withForeignPtr cfp $ \p ->
+  {#call unsafe git_commit_time#} p
 
+-- | Get the commit timezone offset (i.e. committer's preferred timezone) of a
+-- commit.
 timeOffset :: Commit -> Int
-timeOffset = undefined -- usCall {#call unsafe git_commit_time_offset#} retNum
+timeOffset (Commit cfp) = unsafePerformIO $
+  withForeignPtr cfp $ \p ->
+  retNum $ {#call unsafe git_commit_time_offset#} p
 
+-- | Get the committer of a commit.
 committer :: Commit -> Signature
-committer = sigCall {#call unsafe git_commit_committer#}
+committer (Commit cfp) = unsafePerformIO $
+  withForeignPtr cfp $ \p -> do
+  o <- mkFPtr =<< {#call unsafe git_commit_committer#} p
+  return $ Signature o
 
+-- | Get the author of a commit.
 author :: Commit -> Signature
-author = sigCall {#call unsafe git_commit_author#}
+author (Commit cfp) = unsafePerformIO $
+  withForeignPtr cfp $ \p -> do
+  o <- mkFPtr =<< {#call unsafe git_commit_author#} p
+  return $ Signature o
 
+-- | Get the tree pointed to by a commit.
 tree :: Commit -> IOEitherErr Tree
 tree (Commit cfp) =
   withForeignPtr cfp $ \c ->
   callPeek Tree (\out -> {#call git_commit_tree#} out c)
 
+-- | Get the number of parents of this commit
 parentCount :: Commit -> IO Int
-parentCount = undefined -- wrapToMNum {#call git_commit_parentcount#}
+parentCount (Commit cfp) =
+  withForeignPtr cfp $ \p ->
+  retNum $ {#call git_commit_parentcount#} p
 
+-- | Get the specified parent of the commit.
 parent :: Commit -> Int -> IOEitherErr Commit
 parent (Commit cfp) n =
   withForeignPtr cfp $ \c ->
   callPeek Commit (\out -> {#call git_commit_parent#} out c (fromIntegral n))
 
+-- | Get the oid of a specified parent for a commit. This is different from
+-- `parent`, which will attempt to load the parent commit from the ODB.
 parentOID :: Commit -> Int -> IO (Maybe OID)
 parentOID (Commit cfp) n =
   withForeignPtr cfp $ \c -> do
   r <- mkFPtr =<< {#call git_commit_parent_oid#} c (fromIntegral n)
   retRes OID r
 
-
--- TODO: split up into two functions, so free doesn't need to be manual. use
--- automated machanisms instead
+-- | Create a new commit in the repository
+-- TODO: Support list of commits here
 createCommit :: OID -> Repository -> Maybe String -> Signature -> Signature
-             -> String -> Tree -> [Commit] -> IO (Maybe GitError)
+             -> String -> Tree -> Commit -> IO (Maybe GitError)
 createCommit (OID ofp) (Repository rfp) mref (Signature afp) (Signature cfp)
-             msg (Tree tfp) ps =
+             msg (Tree tfp) (Commit mfp) =
   withForeignPtr ofp $ \o ->
   withForeignPtr rfp $ \r ->
   withForeignPtr afp $ \ausig ->
   withForeignPtr cfp $ \comsig ->
   withForeignPtr tfp $ \t ->
+  withForeignPtr mfp $ \m ->
   withCString msg $ \msgStr -> do
-  updRef <- case mref of
-              Nothing -> return nullPtr
-              Just x  -> newCString x
-  {- carr   <- newArray [c | Commit c <- ps]-}
-  {- let ret = retMaybe =<< {#call git_commit_create#} o r updRef ausig comsig-}
-                               {- msgStr t (fromIntegral $ length ps) carr-}
-  free updRef
-  {- ret-}
-  undefined
+  carr <- newArray [m]
+  let cc' = cc carr o r ausig comsig t msgStr
+  let ret = case mref of
+              Nothing -> cc' nullPtr
+              Just x  -> withCString x $ \str -> cc' str
+  free carr
+  ret
+  where cc carr o r as cs t ms ref = retMaybe =<< {#call git_commit_create#} o
+           r ref as cs ms t (fromIntegral (1 :: Int)) carr
