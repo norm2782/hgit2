@@ -100,4 +100,7 @@ setSorting (RevWalk rfp) s =
 
 -- | Return the repository on which this walker is operating.
 walkerRepo :: RevWalk -> IO Repository
-walkerRepo = undefined -- callRetCons {#call git_revwalk_repository#} Repository
+walkerRepo (RevWalk rfp) =
+  withForeignPtr rfp $ \r -> do
+  ptr <- mkFPtr =<< {#call git_revwalk_repository#} r
+  return $ Repository ptr
