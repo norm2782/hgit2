@@ -30,7 +30,10 @@ instance CWrapper TreeBuilder where
 
 -- | Get the id of a tree.
 treeId :: Tree -> OID
-treeId = undefined -- unsafePerformIO . callRetCons {#call git_tree_id#} OID
+treeId (Tree tfp) = unsafePerformIO $
+  withForeignPtr tfp $ \t -> do
+  ptr <- mkFPtr =<< {#call git_tree_id#} t
+  return $ OID ptr
 
 -- | Get the number of entries listed in a tree
 entryCount :: Tree -> IO Int
@@ -41,16 +44,16 @@ entryCount (Tree tfp) = withForeignPtr tfp $ \t ->
 entryByName :: Tree -> String -> IO TreeEntry
 entryByName (Tree tfp) fn =
   withForeignPtr tfp $ \t ->
-  withCString fn $ \nm ->
-  undefined
-  {- fmap TreeEntry $ {#call git_tree_entry_byname#} t nm-}
+  withCString fn $ \nm -> do
+  ptr <- mkFPtr =<< {#call git_tree_entry_byname#} t nm
+  return $ TreeEntry ptr
 
 -- | Lookup a tree entry by its position in the tree
 entryByIndex :: Tree -> Int -> IO TreeEntry
 entryByIndex (Tree tfp) n =
-  withForeignPtr tfp $ \t ->
-  undefined
-  {- fmap TreeEntry $ {#call git_tree_entry_byindex#} t (fromIntegral n)-}
+  withForeignPtr tfp $ \t -> do
+  ptr <- mkFPtr =<< {#call git_tree_entry_byindex#} t (fromIntegral n)
+  return $ TreeEntry ptr
 
 -- | Get the UNIX file attributes of a tree entry
 attributes :: TreeEntry -> IO Int
@@ -66,14 +69,16 @@ name (TreeEntry tfp) =
 
 -- | Get the id of the object pointed by the entry
 entryId :: TreeEntry -> IO OID
-entryId = undefined -- callRetCons {#call git_tree_entry_id#} OID
+entryId (TreeEntry tfp) =
+  withForeignPtr tfp $ \t -> do
+  ptr <- mkFPtr =<< {#call git_tree_entry_id#} t
+  return $ OID ptr
 
 -- | Get the type of the object pointed by the entry
 entryType :: TreeEntry -> IO OType
 entryType (TreeEntry tfp) =
-  withForeignPtr tfp $ \t ->
-  undefined
-  {- fmap (toEnum . fromIntegral) $ {#call git_tree_entry_type#} t-}
+  withForeignPtr tfp $ \t -> do
+  return . toEnum . fromIntegral =<< {#call git_tree_entry_type#} t
 
 -- | Convert a tree entry to the git_object it points too.
 entryToObj :: Repository -> TreeEntry -> IOEitherErr GitObj
@@ -87,9 +92,10 @@ createFromIndex :: OID -> Index -> IO (Maybe GitError)
 createFromIndex (OID ofp) (Index ifp) =
   withForeignPtr ofp $ \o ->
   withForeignPtr ifp $ \i ->
-  undefined -- retMaybe =<< {#call git_tree_create_fromindex#} o i
+  retMaybe =<< {#call git_tree_create_fromindex#} o i
 
 -- | Create a new tree builder
+-- TODO: Finish
 createTreeBuilder :: Maybe Tree -> IO (Either GitError TreeBuilder)
 createTreeBuilder tr = alloca $ \builder -> do
   res <- {#call git_treebuilder_create#} builder undefined -- t
@@ -121,14 +127,14 @@ insertTreeBuilder (TreeBuilder tfp) fn (OID ofp) as =
   alloca $ \entry ->
   withCString fn $ \nm -> do
   res <- {#call git_treebuilder_insert#} entry b nm o (fromIntegral as)
-  undefined -- retEither res $ fmap (Right . TreeEntry) $ peek entry
+  retEither res $ fmap (Right . TreeEntry) $ mkFPtr =<< peek entry
 
 -- | Remove an entry from the builder by its filename
 removeTreeBuilder :: TreeBuilder -> String -> IO (Maybe GitError)
 removeTreeBuilder (TreeBuilder tfp) fn =
   withForeignPtr tfp $ \t ->
   withCString fn $ \nm ->
-  undefined -- retMaybe =<< {#call git_treebuilder_remove#} t nm
+  retMaybe =<< {#call git_treebuilder_remove#} t nm
 
 {-
 /**
@@ -155,4 +161,4 @@ writeTreeBuilder (OID ofp) (Repository rfp) (TreeBuilder tfp) =
   withForeignPtr ofp $ \o ->
   withForeignPtr rfp $ \r ->
   withForeignPtr tfp $ \t ->
-  undefined -- retMaybe =<< {#call git_treebuilder_write#} o r t
+  retMaybe =<< {#call git_treebuilder_write#} o r t
