@@ -20,16 +20,24 @@ instance CWrapper Blob where
   unwrap (Blob b) = b
 
 -- TODO: Could the next two be made "pure"?
+-- | Get a read-only buffer with the raw content of a blob.
+--
+-- A pointer to the raw content of a blob is returned; this pointer is owned
+-- internally by the object and shall not be free'd. The pointer may be
+-- invalidated at a later time.
 rawBlobContent :: Blob -> IO RawData
 rawBlobContent (Blob bfp) =
   withForeignPtr bfp $ \b ->
-  undefined -- callRetCons {#call git_blob_rawcontent#} RawData
+  return . RawData =<< {#call git_blob_rawcontent#} b
 
+-- | Get the size in bytes of the contents of a blob
 rawBlobSize :: Blob -> IO Int
 rawBlobSize (Blob bfp) =
   withForeignPtr bfp $ \b ->
-  undefined -- wrapToMNum {#call git_blob_rawsize#}
+  retNum $ {#call git_blob_rawsize#} b
 
+-- | Read a file from the working folder of a repository and write it to the
+-- Object Database as a loose blob
 blobFromFile :: OID -> Repository -> String -> IO (Maybe GitError)
 blobFromFile (OID ofp) (Repository rfp) pth =
   withForeignPtr ofp $ \obj ->
@@ -37,10 +45,10 @@ blobFromFile (OID ofp) (Repository rfp) pth =
   withCString pth $ \pth' ->
   retMaybe =<< {#call git_blob_create_fromfile #} obj repo pth'
 
+-- | Write an in-memory buffer to the ODB as a blob
 blobFromBuffer :: OID -> Repository -> RawData -> IO (Maybe GitError)
-blobFromBuffer (OID ofp) (Repository rfp) (RawData bfp) =
+blobFromBuffer (OID ofp) (Repository rfp) (RawData buf) =
   withForeignPtr ofp $ \o ->
   withForeignPtr rfp $ \repo ->
-  withForeignPtr bfp $ \buf ->
   retMaybe =<< {#call git_blob_create_frombuffer#} o repo buf
                                                     (fromIntegral $ sizeOf buf)

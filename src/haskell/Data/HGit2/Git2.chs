@@ -12,13 +12,10 @@ type IOEitherErr a = IO (Either GitError a)
 -- see createTag
 type IOCanFail     = IO (Maybe GitError)
 
-newtype RawData = RawData CPtr
+newtype RawData = RawData (Ptr ())
 
 class CWrapper a where
   unwrap :: a -> CPtr
-
-instance CWrapper RawData where
-  unwrap (RawData r) = r
 
 {- wrapToMNum :: (CWrapper a, Num b, Monad m, Integral c) => (CPtr -> m c) -> a-}
            {- -> m b-}
