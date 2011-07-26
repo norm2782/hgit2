@@ -25,30 +25,21 @@ instance CWrapper Commit where
 
 -- | Get the id of a commit.
 commitId :: Commit -> OID
-commitId (Commit cfp) = unsafePerformIO $
-  withForeignPtr cfp $ \p -> do
-  o <- mkFPtr =<< {#call unsafe git_commit_id#} p
-  return $ OID o
+commitId = unsafePerformIO . wrpToCstr OID {#call unsafe git_commit_id#}
 
 -- | Get the id of the tree pointed to by a commit. This differs from `tree` in
 -- that no attempts are made to fetch an object from the ODB.
 treeOID :: Commit -> OID
-treeOID (Commit cfp) = unsafePerformIO $
-  withForeignPtr cfp $ \p -> do
-  o <- mkFPtr =<< {#call unsafe git_commit_tree_oid#} p
-  return $ OID o
+treeOID = unsafePerformIO . wrpToCstr OID {#call unsafe git_commit_tree_oid#}
 
 -- | Get the short (one line) message of a commit.
 shortCommitMsg :: Commit -> String
-shortCommitMsg (Commit cfp) = unsafePerformIO $
-  withForeignPtr cfp $ \p ->
-  peekCString =<< {#call unsafe git_commit_message_short#} p
+shortCommitMsg = unsafePerformIO . wrpToStr
+  {#call unsafe git_commit_message_short#}
 
 -- | Get the full message of a commit.
 commitMsg :: Commit -> String
-commitMsg (Commit cfp) = unsafePerformIO $
-  withForeignPtr cfp $ \p ->
-  peekCString =<< {#call unsafe git_commit_message#} p
+commitMsg = unsafePerformIO . wrpToStr {#call unsafe git_commit_message#}
 
 -- | Get the commit time (i.e. committer time) of a commit.
 commitTime :: Commit -> TimeT
@@ -59,23 +50,17 @@ commitTime (Commit cfp) = unsafePerformIO $
 -- | Get the commit timezone offset (i.e. committer's preferred timezone) of a
 -- commit.
 timeOffset :: Commit -> Int
-timeOffset (Commit cfp) = unsafePerformIO $
-  withForeignPtr cfp $ \p ->
-  retNum $ {#call unsafe git_commit_time_offset#} p
+timeOffset = unsafePerformIO . wrpToInt {#call unsafe git_commit_time_offset#}
 
 -- | Get the committer of a commit.
 committer :: Commit -> Signature
-committer (Commit cfp) = unsafePerformIO $
-  withForeignPtr cfp $ \p -> do
-  o <- mkFPtr =<< {#call unsafe git_commit_committer#} p
-  return $ Signature o
+committer = unsafePerformIO . wrpToCstr Signature
+  {#call unsafe git_commit_committer#}
 
 -- | Get the author of a commit.
 author :: Commit -> Signature
-author (Commit cfp) = unsafePerformIO $
-  withForeignPtr cfp $ \p -> do
-  o <- mkFPtr =<< {#call unsafe git_commit_author#} p
-  return $ Signature o
+author = unsafePerformIO . wrpToCstr Signature
+  {#call unsafe git_commit_author#}
 
 -- | Get the tree pointed to by a commit.
 tree :: Commit -> IOEitherErr Tree
@@ -85,9 +70,7 @@ tree (Commit cfp) =
 
 -- | Get the number of parents of this commit
 parentCount :: Commit -> IO Int
-parentCount (Commit cfp) =
-  withForeignPtr cfp $ \p ->
-  retNum $ {#call git_commit_parentcount#} p
+parentCount = wrpToInt {#call git_commit_parentcount#}
 
 -- | Get the specified parent of the commit.
 parent :: Commit -> Int -> IOEitherErr Commit

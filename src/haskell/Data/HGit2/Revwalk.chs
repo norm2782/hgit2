@@ -45,8 +45,7 @@ newWalk (Repository rfp) =
 --
 -- The revision walk is automatically reset when a walk is over.
 resetWalk :: RevWalk -> IO ()
-resetWalk (RevWalk rfp) =
-  withForeignPtr rfp $ {#call git_revwalk_reset#}
+resetWalk = wrpToUnit {#call git_revwalk_reset#}
 
 -- | Mark a commit to start traversal from.
 --

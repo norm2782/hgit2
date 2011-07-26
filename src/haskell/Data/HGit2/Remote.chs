@@ -29,15 +29,11 @@ remote (Config cfp) str =
 
 -- | Get the remote's name
 remoteName :: Remote -> String
-remoteName (Remote rfp) = unsafePerformIO $
-  withForeignPtr rfp $ \r ->
-  peekCString =<< {#call git_remote_name#} r
+remoteName = unsafePerformIO . wrpToStr {#call git_remote_name#}
 
 -- | Get the remote's url
 remoteURL :: Remote -> String
-remoteURL (Remote rfp) = unsafePerformIO $
-  withForeignPtr rfp $ \r ->
-  peekCString =<< {#call git_remote_url#} r
+remoteURL = unsafePerformIO . wrpToStr {#call git_remote_url#}
 
 -- | Get the fetch refspec
 remoteRefSpec :: Remote -> IO (Maybe RefSpec)

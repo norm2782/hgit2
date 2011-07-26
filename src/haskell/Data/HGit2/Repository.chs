@@ -21,11 +21,6 @@ instance CWrapper Repository where
 
 {#enum git_repository_pathid as RepositoryPathID {underscoreToCase}#}
 
-repoIs :: (Ptr () -> IO CInt) -> Repository -> IO Bool
-repoIs ffi (Repository fp) =
-  withForeignPtr fp $ \ptr ->
-  return . toBool =<< ffi ptr
-
 -- | Open a git repository.
 --
 -- The 'path' argument must point to an existing git repository folder, e.g.
@@ -88,9 +83,7 @@ discover startPath acrossFs ceilingDirs = alloca $ \out ->
 
 -- | Get the object database behind a Git repository
 database :: Repository -> IO ODB
-database (Repository fp) =
-  withForeignPtr fp $ \r ->
-  fmap ODB $ mkFPtr =<< {#call git_repository_database#} r
+database = wrpToCstr ODB {#call git_repository_database#}
 
 -- | Open the Index file of a Git repository
 --
@@ -121,20 +114,20 @@ initRepo pth bare =
 -- A repository's HEAD is detached when it points directly to a commit instead
 -- of a branch.
 isHeadDetached :: Repository -> IO Bool
-isHeadDetached = repoIs {#call git_repository_head_detached#}
+isHeadDetached = wrpToBool {#call git_repository_head_detached#}
 
 -- | Check if the current branch is an orphan
 --
 -- An orphan branch is one named from HEAD but which doesn't exist in the refs
 -- namespace, because it doesn't have any commit to point to.
 isHeadOrphan :: Repository -> IO Bool
-isHeadOrphan = repoIs {#call git_repository_head_orphan#}
+isHeadOrphan = wrpToBool {#call git_repository_head_orphan#}
 
 -- | Check if a repository is empty
 --
 -- An empty repository has just been initialized and contains no commits.
 isEmpty :: Repository -> IO Bool
-isEmpty = repoIs {#call git_repository_is_empty#}
+isEmpty = wrpToBool {#call git_repository_is_empty#}
 
 -- | Get one of the paths to the repository
 --
@@ -151,7 +144,7 @@ path (Repository fp) pid =
 
 -- | Check if a repository is bare
 isBare :: Repository -> IO Bool
-isBare = repoIs {#call git_repository_is_bare#}
+isBare = wrpToBool {#call git_repository_is_bare#}
 
 -- | Retrieve the relevant configuration for a repository
 --

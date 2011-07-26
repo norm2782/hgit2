@@ -137,13 +137,11 @@ getIndex (Index ifp) n =
 
 -- | Get the count of entries currently in the index
 entryCount :: Index -> IO Int
-entryCount (Index ifp) =
-  withForeignPtr ifp $ retNum . {#call git_index_entrycount#}
+entryCount = wrpToInt {#call git_index_entrycount#}
 
 -- | Get the count of unmerged entries currently in the index
 entryCountUnMerged :: Index -> IO Int
-entryCountUnMerged  (Index ifp) =
-  withForeignPtr ifp $ retNum . {#call git_index_entrycount_unmerged#}
+entryCountUnMerged = wrpToInt {#call git_index_entrycount_unmerged#}
 
 retIEU :: Ptr () -> IO (Maybe IndexEntryUnMerged)
 retIEU ptr = retRes IndexEntryUnMerged =<< mkFPtr ptr
@@ -163,5 +161,4 @@ unmergedByIndex (Index ifp) n =
 
 -- | Return the stage number from a git index entry
 entryStage :: IndexEntry -> IO Int
-entryStage (IndexEntry ifp) =
-  withForeignPtr ifp $ retNum . {#call git_index_entry_stage#}
+entryStage = wrpToInt {#call git_index_entry_stage#}

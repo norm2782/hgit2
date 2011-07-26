@@ -73,6 +73,31 @@ retEnum a = return . toEnum . fromIntegral =<< a
 {- callRetMaybe :: CWrapper a => (CPtr -> IO CInt) -> a -> IOCanFail-}
 {- callRetMaybe call = (retMaybe =<<) . call . unwrap-}
 
+wrpToCstr :: CWrapper a => (CPtr -> b) -> (Ptr () -> IO (Ptr ())) -> a -> IO b
+wrpToCstr cstr fn wrp =
+  withForeignPtr (unwrap wrp) $ \pt ->
+  fmap cstr $ mkFPtr =<< fn pt
+
+wrpToBool :: (CWrapper a, Integral n) => (Ptr () -> IO n) -> a -> IO Bool
+wrpToBool fn wrp =
+  withForeignPtr (unwrap wrp) $ \pt ->
+  return . toBool =<< fn pt
+
+wrpToStr :: CWrapper a => (Ptr () -> IO CString) -> a -> IO String
+wrpToStr fn wrp =
+  withForeignPtr (unwrap wrp) $ \pt ->
+  peekCString =<< fn pt
+
+wrpToInt :: (CWrapper a, Integral n) => (Ptr () -> IO n) -> a -> IO Int
+wrpToInt fn wrp =
+  withForeignPtr (unwrap wrp) $ \pt ->
+  return . fromIntegral =<< fn pt
+
+wrpToUnit :: CWrapper a => (Ptr () -> IO ()) -> a -> IO ()
+wrpToUnit fn wrp =
+  withForeignPtr (unwrap wrp) $ \pt ->
+  fn pt
+
 callPeek :: (ForeignPtr a1 -> a) -> (Ptr (Ptr a1) -> IO CInt)
          -> IO (Either GitError a)
 callPeek con call = alloca $ \out -> eitherPeek' out con =<< call out

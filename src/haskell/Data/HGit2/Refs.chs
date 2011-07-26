@@ -74,9 +74,7 @@ refOID (Reference rfp) =
 --
 -- Only available if the reference is symbolic
 refTarget :: Reference -> IO String
-refTarget (Reference rfp) =
-  withForeignPtr rfp $ \ref ->
-  peekCString =<< {#call git_reference_target#} ref
+refTarget = wrpToStr {#call git_reference_target#}
 
 -- | Get the type of a reference
 --
@@ -88,9 +86,7 @@ refType (Reference rfp) =
 
 -- | Get the full name of a reference
 refName :: Reference -> IO String
-refName (Reference rfp) =
-  withForeignPtr rfp $ \ref ->
-  peekCString =<< {#call git_reference_name#} ref
+refName = wrpToStr {#call git_reference_name#}
 
 -- | Resolve a symbolic reference
 --
@@ -106,10 +102,7 @@ resolveRef (Reference rfp) =
 
 -- | Get the repository where a reference resides
 refOwner :: Reference -> IO Repository
-refOwner (Reference rfp) =
-  withForeignPtr rfp $ \r -> do
-  ptr <- mkFPtr =<< {#call git_reference_owner#} r
-  return $ Repository ptr
+refOwner = wrpToCstr Repository {#call git_reference_owner#}
 
 -- | Set the symbolic target of a reference.
 --

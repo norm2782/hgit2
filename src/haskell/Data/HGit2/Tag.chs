@@ -26,10 +26,7 @@ instance CWrapper Target where
 
 -- | Get the id of a tag.
 tagID :: Tag -> IO OID
-tagID (Tag tfp) =
-  withForeignPtr tfp $ \t -> do
-  ptr <- mkFPtr =<< {#call git_tag_id#} t
-  return $ OID ptr
+tagID = wrpToCstr OID {#call git_tag_id#}
 
 -- | Get the tagged object of a tag
 --
@@ -41,34 +38,24 @@ target (Tag tfp) =
 
 -- | Get the OID of the tagged object of a tag
 targetOID :: Tag -> IO OID
-targetOID (Tag tfp) =
-  withForeignPtr tfp $ \t -> do
-  ptr <- mkFPtr =<< {#call git_tag_target_oid#} t
-  return $ OID ptr
+targetOID = wrpToCstr OID {#call git_tag_target_oid#}
 
 -- | Get the type of a tag's tagged object
 tagType :: Tag -> OType
 tagType (Tag tfp) = unsafePerformIO $
-  retEnum $ withForeignPtr tfp $ {#call git_tag_type#}
+  retEnum $ withForeignPtr tfp $ {#call unsafe git_tag_type#}
 
 -- | Get the name of a tag
 tagName :: Tag -> String
-tagName (Tag tfp) = unsafePerformIO $
-  withForeignPtr tfp $ \t ->
-  peekCString =<< {#call git_tag_name#} t
+tagName = unsafePerformIO . wrpToStr {#call unsafe git_tag_name#}
 
 -- | Get the tagger (author) of a tag
 tagger :: Tag -> Signature
-tagger (Tag tfp) = unsafePerformIO $
-  withForeignPtr tfp $ \t -> do
-  ptr <- mkFPtr =<< {#call git_tag_tagger#} t
-  return $ Signature ptr
+tagger = unsafePerformIO . wrpToCstr Signature {#call unsafe git_tag_tagger#}
 
 -- | Get the message of a tag
 tagMessage :: Tag -> String
-tagMessage (Tag tfp) = unsafePerformIO $
-  withForeignPtr tfp $ \t ->
-  peekCString =<< {#call git_tag_message#} t
+tagMessage = unsafePerformIO . wrpToStr {#call unsafe git_tag_message#}
 
 -- | Create a new tag in the repository from an object
 --

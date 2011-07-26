@@ -70,9 +70,7 @@ addAlternate (ODB ofp) (ODBBackend bfp) n =
 
 -- | Close an open object database.
 closeODB :: ODB -> IO ()
-closeODB (ODB ofp) =
-  withForeignPtr ofp $ \o ->
- {#call git_odb_close#} o
+closeODB = wrpToUnit {#call git_odb_close#}
 
 -- | Read an object from the database.
 --
@@ -257,17 +255,13 @@ GIT_EXTERN(int) git_odb_hashfile(git_oid *out, const char *path, git_otype type)
 -- This method must always be called once a `git_odb_object` is no longer
 -- needed, otherwise memory will leak.
 closeODBObj :: ODBObj -> IO ()
-closeODBObj (ODBObj fp) = withForeignPtr fp $ \o ->
-  {#call git_odb_object_close#} o
+closeODBObj = wrpToUnit {#call git_odb_object_close#}
 
 -- | Return the OID of an ODB object
 --
 -- This is the OID from which the object was read from
 objId :: ODBObj -> IO OID
-objId (ODBObj ofp) =
-  withForeignPtr ofp $ \o -> do
-  ptr <- mkFPtr =<< {#call git_odb_object_id#} o
-  return $ OID ptr
+objId = wrpToCstr OID {#call git_odb_object_id#}
 
 -- | Return the data of an ODB object
 --

@@ -46,8 +46,7 @@ writeReflog (Reference rfp) (OID ofp) (Signature sfp) str =
 
 -- | Get the number of log entries in a reflog
 entryCount :: Reflog -> IO Int
-entryCount (Reflog rfp) =
-  withForeignPtr rfp $ retNum . {#call git_reflog_entrycount#}
+entryCount = wrpToInt {#call git_reflog_entrycount#}
 
 -- | Lookup an entry by its index
 entryByIndex :: Reflog -> Int -> IO (Maybe ReflogEntry)
@@ -58,27 +57,17 @@ entryByIndex (Reflog rfp) n =
 
 -- | Get the old oid
 oldOID :: ReflogEntry -> String
-oldOID (ReflogEntry rfp) = unsafePerformIO $
-  withForeignPtr rfp $ \r ->
-  peekCString =<< {#call unsafe git_reflog_entry_oidold#} r
+oldOID = unsafePerformIO . wrpToStr {#call unsafe git_reflog_entry_oidold#}
 
 -- | Get the new oid
 newOID :: ReflogEntry -> String
-newOID (ReflogEntry rfp) = unsafePerformIO $
-  withForeignPtr rfp $ \r ->
-  peekCString =<< {#call unsafe git_reflog_entry_oidnew#} r
+newOID = unsafePerformIO . wrpToStr {#call unsafe git_reflog_entry_oidnew#}
 
 -- | Get the committer of this entry
 committer :: ReflogEntry -> Signature
-committer (ReflogEntry rfp) = unsafePerformIO $
-  withForeignPtr rfp $ \r -> do
-  res <- {#call unsafe git_reflog_entry_committer#} r
-  fpr <- mkFPtr res
-  return (Signature fpr)
+committer = unsafePerformIO . wrpToCstr Signature
+  {#call unsafe git_reflog_entry_committer#}
 
 -- | Get the log msg
 entryMsg :: ReflogEntry -> String
-entryMsg (ReflogEntry rfp) = unsafePerformIO $
-  withForeignPtr rfp $ \r ->
-  peekCString =<< {#call unsafe git_reflog_entry_msg#} r
-
+entryMsg = unsafePerformIO . wrpToStr {#call unsafe git_reflog_entry_msg#}

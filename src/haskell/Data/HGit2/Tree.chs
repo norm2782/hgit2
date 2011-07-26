@@ -30,15 +30,11 @@ instance CWrapper TreeBuilder where
 
 -- | Get the id of a tree.
 treeId :: Tree -> OID
-treeId (Tree tfp) = unsafePerformIO $
-  withForeignPtr tfp $ \t -> do
-  ptr <- mkFPtr =<< {#call git_tree_id#} t
-  return $ OID ptr
+treeId = unsafePerformIO . wrpToCstr OID {#call git_tree_id#}
 
 -- | Get the number of entries listed in a tree
 entryCount :: Tree -> IO Int
-entryCount (Tree tfp) = withForeignPtr tfp $ \t ->
-  retNum $ {#call git_tree_entrycount#} t
+entryCount = wrpToInt {#call git_tree_entrycount#}
 
 -- | Lookup a tree entry by its filename
 entryByName :: Tree -> String -> IO TreeEntry
@@ -57,22 +53,15 @@ entryByIndex (Tree tfp) n =
 
 -- | Get the UNIX file attributes of a tree entry
 attributes :: TreeEntry -> IO Int
-attributes (TreeEntry tfp) =
-  withForeignPtr tfp $ \t ->
-  retNum $ {#call git_tree_entry_attributes#} t
+attributes = wrpToInt {#call git_tree_entry_attributes#}
 
 -- | Get the filename of a tree entry
 name :: TreeEntry -> IO String
-name (TreeEntry tfp) =
-  withForeignPtr tfp $ \t ->
-  peekCString =<< {#call git_tree_entry_name#} t
+name = wrpToStr {#call git_tree_entry_name#}
 
 -- | Get the id of the object pointed by the entry
 entryId :: TreeEntry -> IO OID
-entryId (TreeEntry tfp) =
-  withForeignPtr tfp $ \t -> do
-  ptr <- mkFPtr =<< {#call git_tree_entry_id#} t
-  return $ OID ptr
+entryId = wrpToCstr OID {#call git_tree_entry_id#}
 
 -- | Get the type of the object pointed by the entry
 entryType :: TreeEntry -> IO OType
@@ -107,8 +96,7 @@ createTreeBuilder tr = alloca $ \builder -> do
 
 -- | Clear all the entires in the builder
 clearTreeBuilder :: TreeBuilder -> IO ()
-clearTreeBuilder (TreeBuilder tfp) =
-  withForeignPtr tfp $ {#call git_treebuilder_clear#}
+clearTreeBuilder = wrpToUnit {#call git_treebuilder_clear#}
 
 -- Get an entry from the builder from its filename
 getTreeBuilder :: TreeBuilder -> String -> IO (Maybe TreeEntry)

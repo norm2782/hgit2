@@ -57,10 +57,7 @@ objTy (GitObj ofp) = unsafePerformIO $
 -- object.
 -- TODO: Refactor
 objOwner :: GitObj -> Repository
-objOwner (GitObj ofp) = unsafePerformIO $
-  withForeignPtr ofp $ \o -> do
-  ptr <- mkFPtr =<< {#call git_object_owner#} o
-  return $ Repository ptr
+objOwner = unsafePerformIO . wrpToCstr Repository {#call git_object_owner#}
 
 -- | Close an open object
 --
@@ -79,7 +76,7 @@ closeObj (GitObj gfp) =
 -- | Convert an object type to it's string representation.
 oTypeToString :: OType -> IO String
 oTypeToString oty =
-  peekCString =<< {#call git_object_type2string#} (fromIntegral $ fromEnum oty)
+  peekCString =<< {#call git_object_type2string#} (unEnum oty)
 
 -- | Convert a string object type representation to it's git_otype.
 strToOType :: String -> IO OType
@@ -93,5 +90,5 @@ isLoose oty = unsafePerformIO $ return . toBool =<<
 -- | Get the size in bytes for the structure which acts as an in-memory
 -- representation of any given object type.
 objSize :: OType -> IO Integer
-objSize = retNum . {#call git_object__size#} . (fromIntegral . fromEnum)
+objSize = retNum . {#call git_object__size#} . unEnum
 
