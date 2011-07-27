@@ -74,12 +74,12 @@ openRepoODB dir (ODB dfp) idxFile workTree =
 -- a repository).
 -- TODO: Size is not calculated correctly
 discover :: String -> Bool -> String -> IOEitherErr String
-discover startPath acrossFs ceilingDirs = alloca $ \out ->
-  withCString startPath $ \spStr ->
-  withCString ceilingDirs $ \cdsStr -> do
-  res <- {#call git_repository_discover#} out (fromIntegral $ (length startPath * 2))
-                                          spStr (fromBool acrossFs) cdsStr
+discover startPath afs ceilingDirs = alloca $ \out ->
+  withCString startPath $ \sstr ->
+  withCString ceilingDirs $ \cstr -> do
+  res <- {#call git_repository_discover#} out pthLen sstr (fromBool afs) cstr
   eitherPeekStr out id res
+  where pthLen = fromIntegral $ length startPath + 8 -- +8 for one byte: the NULL terminator. TODO: Is this 8 in multibyte strings as well?
 
 -- | Get the object database behind a Git repository
 database :: Repository -> IO ODB

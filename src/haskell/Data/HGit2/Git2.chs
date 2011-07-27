@@ -105,11 +105,18 @@ callPeek con call = alloca $ \out -> eitherPeek' out con =<< call out
 eitherPeek' :: Ptr (Ptr a1) -> (ForeignPtr a1 -> a) -> CInt -> IOEitherErr a
 eitherPeek' ptr = eitherCon (newForeignPtr finalizerFree =<< peek ptr)
 
-{- unsafePeekStr :: CWrapper a => (CPtr -> IO CString) -> a -> String-}
-{- unsafePeekStr call = unsafePerformIO . (peekCString =<<) . call . unwrap-}
-
 mkFPtr :: Ptr a -> IO (ForeignPtr a)
 mkFPtr = newForeignPtr finalizerFree
 
 unEnum :: (Enum a, Integral i) => a -> i
 unEnum = fromIntegral . fromEnum
+
+
+type CUString = Ptr CUChar
+
+withCUString :: String -> (CUString -> IO a) -> IO a
+withCUString = withArray0 uNUL . charsToCUChars
+  where charsToCUChars :: [Char] -> [CUChar]
+        charsToCUChars xs = map castCharToCUChar xs
+        uNUL :: CUChar
+        uNUL = 0

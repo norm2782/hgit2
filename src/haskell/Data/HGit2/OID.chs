@@ -18,48 +18,26 @@ instance CWrapper OID where
                        , GIT_OID_HEXSZ as HexSize
                        , GIT_OID_MINPREFIXLEN as MinPrefixLen}#}
 
+-- | Parse a hex formatted object id into a git_oid.
+oidFromStr :: OID -> String -> IOCanFail
+oidFromStr (OID ofp) str =
+  withForeignPtr ofp $ \o ->
+  withCString str $ \s' ->
+  retMaybe =<< {#call git_oid_fromstr#} o s'
 
-{-
-/**
- * Parse a hex formatted object id into a git_oid.
- *
- * @param out oid structure the result is written into.
- * @param str input hex string; must be pointing at the start of
- *        the hex sequence and have at least the number of bytes
- *        needed for an oid encoded in hex (40 bytes).
- * @return GIT_SUCCESS if valid; GIT_ENOTOID on failure.
- */
-GIT_EXTERN(int) git_oid_fromstr(git_oid *out, const char *str);
-TODO
--}
-{- oidFromStr :: String -> IO (Either GitError OID)-}
-{- oidFromStr str = alloca $ \oid -> do-}
-  {- s' <- newCString str-}
-  {- res <- {#call git_oid_fromstr#} oid s'-}
-  {- retEither res $ return $ (Right . OID) oid-}
+-- | Parse a hex formatted object id into a git_oid
+fromStr :: OID -> String -> IOCanFail
+fromStr (OID ofp) str =
+  withForeignPtr ofp $ \o ->
+  withCStringLen str $ \(xs, ln) ->
+  retMaybe =<< {#call git_oid_fromstrn#} o xs (fromIntegral ln)
 
-{-
-/**
- * Parse N characters of a hex formatted object id into a git_oid
- *
- * If N is odd, N-1 characters will be parsed instead.
- * The remaining space in the git_oid will be set to zero.
- *
- * @param out oid structure the result is written into.
- * @param str input hex string of at least size `length`
- * @param length length of the input string
- * @return GIT_SUCCESS if valid; GIT_ENOTOID on failure.
- */
-GIT_EXTERN(int) git_oid_fromstrn(git_oid *out, const char *str, size_t length);
-
-/**
- * Copy an already raw oid into a git_oid structure.
- *
- * @param out oid structure the result is written into.
- * @param raw the raw input bytes to be copied.
- */
-GIT_EXTERN(void) git_oid_fromraw(git_oid *out, const unsigned char *raw);
--}
+-- | Copy an already raw oid into a git_oid structure.
+fromRaw :: OID -> String -> IO ()
+fromRaw (OID ofp) str =
+  withForeignPtr ofp $ \o ->
+  withCUString str $ \r ->
+  {#call git_oid_fromraw#} o r
 
 -- | Format a git_oid into a hex string.
 fmtOID :: OID -> IO String
@@ -87,24 +65,14 @@ formatOid (OID ofp) =
     then return Nothing
     else fmap Just $ peekCString res
 
-{-
-/**
- * Format a git_oid into a buffer as a hex format c-string.
- *
- * If the buffer is smaller than GIT_OID_HEXSZ+1, then the resulting
- * oid c-string will be truncated to n-1 characters. If there are
- * any input parameter errors (out == NULL, n == 0, oid == NULL),
- * then a pointer to an empty string is returned, so that the return
- * value can always be printed.
- *
- * @param out the buffer into which the oid string is output.
- * @param n the size of the out buffer.
- * @param oid the oid structure to format.
- * @return the out buffer pointer, assuming no input parameter
- *         errors, otherwise a pointer to an empty string.
- */
-GIT_EXTERN(char *) git_oid_to_string(char *out, size_t n, const git_oid *oid);
--}
+-- | Format a git_oid into a buffer as a hex format c-string.
+oidToString :: OID -> IO String
+oidToString (OID ofp) =
+  withForeignPtr ofp $ \o -> do
+  str <- malloc
+  res <- peekCString =<< {#call git_oid_to_string#} str (fromIntegral $ sizeOf str) o
+  free str
+  return res
 
 -- | Copy an oid from one structure to another.
 copyOID :: OID -> OID -> IO ()

@@ -18,6 +18,9 @@ import Foreign
 import Foreign.C.String
 import Foreign.C.Types
 
+type Author    = Signature
+type Committer = Signature
+
 newtype Commit = Commit CPtr
 
 instance CWrapper Commit where
@@ -87,24 +90,27 @@ parentOID (Commit cfp) n =
   retRes OID r
 
 -- | Create a new commit in the repository
--- TODO: Support list of commits here
-createCommit :: OID -> Repository -> Maybe String -> Signature -> Signature
-             -> String -> Tree -> Commit -> IO (Maybe GitError)
-createCommit (OID ofp) (Repository rfp) mref (Signature afp) (Signature cfp)
-             msg (Tree tfp) (Commit mfp) =
-  withForeignPtr ofp $ \o ->
-  withForeignPtr rfp $ \r ->
-  withForeignPtr afp $ \ausig ->
-  withForeignPtr cfp $ \comsig ->
-  withForeignPtr tfp $ \t ->
-  withForeignPtr mfp $ \m ->
-  withCString msg $ \msgStr -> do
-  carr <- newArray [m]
-  let cc' = cc carr o r ausig comsig t msgStr
-  let ret = case mref of
-              Nothing -> cc' nullPtr
-              Just x  -> withCString x $ \str -> cc' str
-  free carr
-  ret
-  where cc carr o r as cs t ms ref = retMaybe =<< {#call git_commit_create#} o
-           r ref as cs ms t (fromIntegral (1 :: Int)) carr
+-- TODO: Support list of commits here, instead of Maybe Commit
+createCommit :: Repository -> Maybe String -> Author -> Committer -> String
+             -> Tree -> Maybe Commit -> IOEitherErr OID
+createCommit (Repository rfp) mref (Signature afp) (Signature cfp) msg (Tree tfp) mcom = do
+  ofp <- newForeignPtr finalizerFree =<< mallocBytes 64 -- FIXME: Silly hardcoding :(
+  withForeignPtr ofp $ \o -> undefined
+    withForeignPtr rfp $ \r ->
+    withForeignPtr afp $ \ausig ->
+    withForeignPtr cfp $ \comsig ->
+    withForeignPtr tfp $ \t ->
+    withCString msg $ \msgStr -> do
+      carr <- case mcom of
+                Nothing           -> newArray []
+                Just (Commit mfp) -> withForeignPtr mfp $ \m -> newArray [m]
+      let cc' = cc carr ofp o r ausig comsig t msgStr
+      let ret = case mref of
+                  Nothing -> cc' nullPtr
+                  Just x  -> withCString x $ \str -> cc' str
+      free carr
+      ret
+  where cc carr ofp o r as cs t ms ref = do
+           res <- {#call git_commit_create#} o r ref as cs ms t
+                                                   (fromIntegral (1 :: Int)) carr
+           retEither res $ return (Right $ OID ofp)

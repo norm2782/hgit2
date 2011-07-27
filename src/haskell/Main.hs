@@ -17,6 +17,7 @@ import Data.HGit2.Refs
 import Data.HGit2.Repository
 import Data.HGit2.Revwalk
 import Data.HGit2.Tag
+import Data.HGit2.Signature
 import Data.HGit2.Remote
 import Data.HGit2.Transport
 import System.Directory
@@ -53,15 +54,24 @@ msg' :: String -> IO String -> IO ()
 msg' str rhs = putStrLn . (str ++) =<< rhs
 
 testRepo :: Repository -> IO ()
-testRepo repo = do msg "Checking whether repo is empty... " (isEmpty repo)
-                   msg' "Repository path... " (path repo GitRepoPath)
-                   putStrLn "Discovering again..."
-                   disc <- discover pth False ""
-                   putStrLn $ case disc of
-                                Left  err -> "Discover error: " ++ show err
-                                Right pth -> "Discover OK: " ++ pth
-                   odbPth <- path repo GitRepoPathOdb
-                   putStrLn $ "ODB directory: " ++ odbPth
-                   putStr "Removing repo... "
-                   removeDirectoryRecursive pth
-                   putStrLn "OK"
+testRepo repo = do
+  msg "Checking whether repo is empty... " (isEmpty repo)
+  msg' "Repository path... " (path repo GitRepoPath)
+  putStrLn "Discovering again..."
+  disc <- discover pth False ""
+  putStrLn $ case disc of
+               Left  err -> "Discover error: " ++ show err
+               Right pth -> "Discover OK: " ++ pth
+  odbPth <- path repo GitRepoPathOdb
+  putStrLn $ "ODB directory: " ++ odbPth
+  putStr "Creating signature... "
+  sig <- nowSignature "really" "me@myself.com"
+  putStrLn "OK"
+  case sig of
+    Nothing -> putStrLn "Failed to create signature"
+    Just s  -> do putStrLn "Creating commit"
+                  comm <- createCommit repo Nothing s s "Yay! New commit!" undefined Nothing
+                  putStrLn "........"
+  putStr "Removing repo... "
+  removeDirectoryRecursive pth
+  putStrLn "OK"

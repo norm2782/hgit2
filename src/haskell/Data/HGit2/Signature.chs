@@ -15,8 +15,7 @@ newtype Signature = Signature CPtr
 instance CWrapper Signature where
   unwrap (Signature s) = s
 
--- | Create a new action signature. The signature must be freed manually or
--- using freeSignature
+-- | Create a new action signature.
 newSignature :: String -> String -> TimeT -> Int -> IO (Maybe Signature)
 newSignature nm em t off =
   withCString nm $ \nm' ->
